@@ -151,6 +151,14 @@ class LessonsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "API recusa video_url com javascript: (VULN-06)" do
+    params = { lesson: { title: "Aula XSS", status: "published", video_url: "javascript:alert(document.domain)" } }
+    assert_no_difference "Lesson.count" do
+      post "/courses/#{@course.id}/lessons", params: params, headers: auth_headers_for(@alice), as: :json
+    end
+    assert_response :unprocessable_entity
+  end
+
   # ─── PUT /lessons/:id (update) ────────────────────────────────────────────
 
   test "criador atualiza aula com sucesso" do

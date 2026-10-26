@@ -69,6 +69,35 @@ class LessonTest < ActiveSupport::TestCase
     assert Lesson.new(@valid_attrs.merge(video_url: "https://youtube.com/watch?v=abc123")).valid?
   end
 
+  # ─── VULN-06: só http/https ──────────────────────────────────────────────
+
+  [
+    "javascript:alert(document.domain)",
+    "JaVaScRiPt:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "texto qualquer http://exemplo.com",
+    "ftp://exemplo.com/video.mp4",
+    "https://usuario:senha@exemplo.com/video",
+    "https://localhost/video"
+  ].each do |url|
+    test "rejeita video_url perigosa ou invalida: #{url}" do
+      lesson = Lesson.new(@valid_attrs.merge(video_url: url))
+      assert_not lesson.valid?, "#{url} deveria ser rejeitada"
+      assert lesson.errors[:video_url].any?
+    end
+  end
+
+  test "remove espacos nas pontas da video_url" do
+    lesson = Lesson.new(@valid_attrs.merge(video_url: "  https://www.youtube.com/watch?v=x  "))
+    assert lesson.valid?
+    assert_equal "https://www.youtube.com/watch?v=x", lesson.video_url
+  end
+
+  test "rejeita titulo muito longo" do
+    assert_not Lesson.new(@valid_attrs.merge(title: "a" * 151)).valid?
+  end
+
   # ─── Associações ─────────────────────────────────────────────────────────
 
   test "pertence ao curso correto" do

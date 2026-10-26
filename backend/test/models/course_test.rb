@@ -68,6 +68,11 @@ class CourseTest < ActiveSupport::TestCase
     assert Course.new(@valid_attrs.merge(description: nil)).valid?
   end
 
+  test "invalido com nome ou descricao longos demais" do
+    assert_not Course.new(@valid_attrs.merge(name: "a" * 151)).valid?
+    assert_not Course.new(@valid_attrs.merge(description: "a" * 5001)).valid?
+  end
+
   # ─── Associações ─────────────────────────────────────────────────────────
 
   test "pertence ao criador correto" do

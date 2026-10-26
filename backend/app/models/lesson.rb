@@ -1,14 +1,16 @@
 class Lesson < ApplicationRecord
   STATUSES = %w[draft published].freeze
+  ALLOWED_URL_SCHEMES = %w[http https].freeze
 
   belongs_to :course
 
-  # Validações obrigatórias
-  validates :title, presence: true, length: { minimum: 3 }
-  validates :status, presence: true, inclusion: { in: STATUSES }
+  normalizes :title, with: ->(title) { title.strip }
+  normalizes :video_url, with: ->(url) { url.strip }
 
-  # Validação de formato de URL apenas se o campo não estiver vazio
-  validates :video_url, format: { with: URI::DEFAULT_PARSER.make_regexp, message: "deve ser uma URL válida" }, allow_blank: true
+  validates :title, presence: true, length: { minimum: 3, maximum: 150 }
+  validates :status, presence: true, inclusion: { in: STATUSES }
+  validates :video_url, length: { maximum: 2048 }, allow_blank: true
+  validate :video_url_must_be_http_url
 
   scope :published, -> { where(status: "published") }
 
@@ -24,5 +26,24 @@ class Lesson < ApplicationRecord
 
   def published?
     status == "published"
+  end
+
+  private
+
+  # Allowlist de esquema (http/https) com parse real da URL.
+  # A validação antiga usava URI::DEFAULT_PARSER.make_regexp, uma regex SEM
+  # âncoras que aceita qualquer esquema — inclusive "javascript:alert(1)" —
+  # e qualquer texto que apenas CONTENHA algo parecido com uma URI.
+  def video_url_must_be_http_url
+    return if video_url.blank?
+
+    uri = URI.parse(video_url)
+    valid = uri.is_a?(URI::HTTP) &&
+      ALLOWED_URL_SCHEMES.include?(uri.scheme.to_s.downcase) &&
+      uri.host.to_s.include?(".") &&
+      uri.userinfo.nil?
+    errors.add(:video_url, "deve ser uma URL http(s) válida") unless valid
+  rescue URI::InvalidURIError
+    errors.add(:video_url, "deve ser uma URL http(s) válida")
   end
 end
