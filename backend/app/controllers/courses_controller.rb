@@ -43,9 +43,7 @@ class CoursesController < ApplicationController
   end
 
   def authorize_creator!
-    if @course.creator != current_user
-      render json: { error: "Ação não permitida para este utilizador" }, status: :forbidden
-    end
+    deny_access!(@course) unless @course.creator_id == current_user.id
   end
 
   def course_params

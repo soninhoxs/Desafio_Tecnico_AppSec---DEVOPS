@@ -1,14 +1,13 @@
 class ApplicationController < ActionController::API
   before_action :authorize_request
-  
-  def current_user
-    @current_user
-  end
 
   private
+
+  attr_reader :current_user
+
   def authorize_request
-    header = request.headers['Authorization']
-    token = header.split(' ').last if header
+    header = request.headers["Authorization"]
+    token = header.split(" ").last if header
     decoded = JsonWebToken.decode(token)
 
     if decoded
@@ -16,7 +15,12 @@ class ApplicationController < ActionController::API
     end
 
     unless @current_user
-      render json: { error: 'Unauthorized' }, status: :unauthorized
+      render json: { error: "Unauthorized" }, status: :unauthorized
     end
+  end
+
+  # Resposta única para "autenticado, mas sem permissão sobre o recurso".
+  def deny_access!(_resource = nil)
+    render json: { error: "Ação não permitida para este utilizador" }, status: :forbidden
   end
 end
