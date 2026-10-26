@@ -18,7 +18,10 @@ class AuthenticationController < ApplicationController
     end
   end
 
+  # Revoga o token usado nesta requisição: a partir daqui ele não autentica
+  # mais, mesmo que ainda não tenha expirado.
   def logout
-    render json: { message: 'Logged out successfully' }, status: :ok
+    RevokedToken.revoke!(current_token_claims)
+    render json: { message: "Logged out successfully" }, status: :ok
   end
 end
