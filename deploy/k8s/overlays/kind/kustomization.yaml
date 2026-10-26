@@ -1,0 +1,18 @@
+# Overlay do cluster kind criado pelo Terraform, com imagens publicadas no
+# GHCR. As tags abaixo são atualizadas AUTOMATICAMENTE pelo pipeline de CD
+# (.github/workflows/cd.yml) a cada push na main: o commit no Git é o deploy
+# (GitOps), e o ArgoCD sincroniza o cluster.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - allow-kubelet-probes.yaml
+
+images:
+  - name: ghcr.io/coursesphere/coursesphere-api
+    newName: ghcr.io/CHANGE-ME/coursesphere-api
+    newTag: initial
+  - name: ghcr.io/coursesphere/coursesphere-frontend
+    newName: ghcr.io/CHANGE-ME/coursesphere-frontend
+    newTag: initial

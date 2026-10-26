@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# O namespace (com Pod Security "restricted") e os Secrets são criados pelo
+# Terraform; aqui ficam só recursos sem segredos (seguros para o Git/GitOps).
+namespace: coursesphere
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: coursesphere
+      app.kubernetes.io/managed-by: argocd
+    includeSelectors: false
+
+resources:
+  - postgres.yaml
+  - api.yaml
+  - frontend.yaml
+  - network-policies.yaml
+  - ingress.yaml
+  - monitoring.yaml

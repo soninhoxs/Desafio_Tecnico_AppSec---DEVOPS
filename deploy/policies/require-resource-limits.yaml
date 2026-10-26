@@ -1,0 +1,26 @@
+# Política de admissão do Kyverno (CEL). Aplica-se ao namespace coursesphere.
+# Gerado em deploy/policies; ajuste validationActions para [Audit] para só reportar.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-resource-limits
+  annotations:
+    policies.kyverno.io/description: "Todo container precisa de limites de CPU e memória (evita que um pod esgote o nó: disponibilidade)."
+spec:
+  validationActions: [Deny]
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, jobs]
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: coursesphere
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, has(c.resources) && has(c.resources.limits) && 'cpu' in c.resources.limits && 'memory' in c.resources.limits) && (!has(object.spec.initContainers) || object.spec.initContainers.all(c, has(c.resources) && has(c.resources.limits) && 'cpu' in c.resources.limits && 'memory' in c.resources.limits))
+      message: "Defina resources.limits.cpu e resources.limits.memory em todos os containers."

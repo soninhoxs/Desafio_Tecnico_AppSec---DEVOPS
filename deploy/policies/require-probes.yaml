@@ -1,0 +1,23 @@
+# Política de admissão do Kyverno (CEL). Aplica-se ao namespace coursesphere.
+# Gerado em deploy/policies; ajuste validationActions para [Audit] para só reportar.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-probes
+  annotations:
+    policies.kyverno.io/description: "Deployments precisam de readiness e liveness probes: sem elas o balanceamento manda tráfego para réplicas quebradas."
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: coursesphere
+    resourceRules:
+      - apiGroups: [apps]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [deployments]
+  validations:
+    - expression: >-
+        object.spec.template.spec.containers.all(c, has(c.readinessProbe) && has(c.livenessProbe))
+      message: "Todo container de Deployment precisa de readinessProbe e livenessProbe."
