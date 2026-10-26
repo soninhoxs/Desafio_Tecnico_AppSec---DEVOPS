@@ -1,0 +1,136 @@
+# CI: testes, lint, build e validação de toda a infraestrutura como código.
+# Todas as actions fixadas por SHA de commit (tags podem ser sequestradas).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-test:
+    name: Backend — testes (Minitest + PostgreSQL)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18.6-alpine3.24
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      RAILS_ENV: test
+      CI: "true"
+      DB_HOST: localhost
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        with:
+          working-directory: backend
+          bundler-cache: true
+      - name: Migrations geram exatamente o db/schema.rb versionado
+        run: |
+          bin/rails db:create db:migrate
+          bin/rails db:schema:dump
+          git diff --exit-code db/schema.rb
+      - name: Testes (inclui os cenários de autorização/autenticação corrigidos)
+        run: bin/rails db:test:prepare test
+      - name: Seeds de demonstração rodam sem erro
+        run: bin/rails db:seed
+
+  backend-lint:
+    name: Backend — RuboCop
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        with:
+          working-directory: backend
+          bundler-cache: true
+      - run: bin/rubocop -f github
+
+  frontend:
+    name: Frontend — lint e build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: ESLint
+        run: npm run lint
+      - run: npm run build
+
+  infra-validate:
+    name: Infra — Terraform, Kubernetes, ArgoCD, Prometheus, Compose
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.22.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+      - name: Ferramentas (versão fixa + SHA-256)
+        run: |
+          bash scripts/ci/install-tools.sh kustomize kubeconform
+          pip install pyyaml==6.0.3
+      - name: PrometheusRule do k8s em dia com as regras do compose
+        run: python scripts/gen_prometheus_rule.py --check
+      - name: promtool — regras e alertas
+        run: |
+          docker run --rm -v "$PWD/deploy/observability/prometheus:/p:ro" --entrypoint promtool \
+            prom/prometheus:v3.15.1 check rules /p/rules/coursesphere.rules.yml
+      - name: ArgoCD app-of-apps — renderiza todos os charts com os valores reais + kubeconform
+        run: python scripts/validate_gitops.py
+      - name: Terraform — fmt e validate
+        working-directory: deploy/terraform/kind
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
+      - name: docker compose config
+        run: |
+          python scripts/bootstrap_env.py
+          docker compose config --quiet
