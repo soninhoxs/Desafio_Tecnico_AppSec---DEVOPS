@@ -23,6 +23,20 @@ class AuthenticationControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  # ─── VULN-08: mesma resposta e mesmo custo para conta existente/inexistente ─
+
+  test "email inexistente e senha errada geram a mesma resposta" do
+    post "/login", params: { email: "naoexiste@example.com", password: "senha_errada" }, as: :json
+    body_unknown = response.body
+    post "/login", params: { email: "alice@example.com", password: "senha_errada" }, as: :json
+    assert_equal body_unknown, response.body
+  end
+
+  test "login ignora maiusculas e espacos no email" do
+    post "/login", params: { email: "  Alice@Example.COM ", password: "password123" }, as: :json
+    assert_response :ok
+  end
+
   # ─── POST /signup ─────────────────────────────────────────────────────────
 
   test "registro bem-sucedido cria usuario e retorna token" do
