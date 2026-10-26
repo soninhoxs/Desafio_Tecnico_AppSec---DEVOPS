@@ -5,7 +5,7 @@
 # como root e com dependências vulneráveis do próprio dev server.)
 
 # ---------- build ----------
-FROM docker.io/library/node:24.22.1-alpine3.24 AS build
+FROM docker.io/library/node:26.12.0-alpine3.24 AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
