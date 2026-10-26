@@ -1,0 +1,133 @@
+# Regras Semgrep próprias do CourseSphere.
+#
+# Os rulesets genéricos (p/ruby, p/javascript, p/owasp-top-ten) e o Brakeman
+# NÃO detectaram nenhuma das falhas de lógica encontradas no pentest. Estas
+# regras codificam os padrões vulneráveis reais deste código para impedir que
+# voltem (regressão), e rodam no CI a cada push.
+rules:
+  - id: lesson-read-without-visibility-scope
+    languages: [ruby]
+    severity: ERROR
+    message: >-
+      Leitura de Lesson sem o escopo de visibilidade. Rascunhos de outro
+      criador vazariam (VULN-01). Use Lesson.visible_to(current_user) ou
+      @course.lessons.visible_to(current_user).
+    paths:
+      include: ["backend/app/controllers/**"]
+    pattern-either:
+      - pattern: Lesson.find(...)
+      - pattern: Lesson.find_by(...)
+      - pattern: Lesson.where(...)
+      - pattern: Lesson.all
+      - pattern: 'render json: $COURSE.lessons'
+    metadata:
+      cwe: "CWE-639: Authorization Bypass Through User-Controlled Key"
+      owasp: "A01:2025 - Broken Access Control"
+
+  - id: unanchored-uri-regexp-validation
+    languages: [ruby]
+    severity: ERROR
+    message: >-
+      URI::DEFAULT_PARSER.make_regexp / URI.regexp gera regex SEM âncoras e
+      aceita qualquer esquema (javascript:, data:). Valide com URI.parse +
+      allowlist de esquema (VULN-06).
+    pattern-either:
+      - pattern: URI::DEFAULT_PARSER.make_regexp
+      - pattern: URI::DEFAULT_PARSER.make_regexp(...)
+      - pattern: URI.regexp
+      - pattern: URI.regexp(...)
+    metadata:
+      cwe: "CWE-20: Improper Input Validation"
+      owasp: "A05:2025 - Injection"
+
+  - id: jwt-decode-without-explicit-algorithm
+    languages: [ruby]
+    severity: ERROR
+    message: >-
+      JWT.decode sem algoritmo explícito. Fixe o algoritmo (algorithm: "HS256")
+      e exija claims (required_claims) para evitar confusão de algoritmo.
+    patterns:
+      - pattern-either:
+          - pattern: JWT.decode($TOKEN, $KEY)
+          - pattern: JWT.decode($TOKEN, $KEY, true)
+          - pattern: JWT.decode($TOKEN, $KEY, $VERIFY, {...})
+      - pattern-not: 'JWT.decode($TOKEN, $KEY, $VERIFY, {..., algorithm: $ALG, ...})'
+      - pattern-not: 'JWT.decode($TOKEN, $KEY, $VERIFY, {..., algorithms: $ALG, ...})'
+    metadata:
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp: "A07:2025 - Authentication Failures"
+
+  - id: logout-without-token-revocation
+    languages: [ruby]
+    severity: ERROR
+    message: >-
+      Logout que não revoga o token: o JWT continua válido até expirar
+      (VULN-02). Grave o jti em RevokedToken.
+    paths:
+      include: ["backend/app/controllers/**"]
+    patterns:
+      - pattern: |
+          def logout
+            ...
+          end
+      - pattern-not: |
+          def logout
+            ...
+            RevokedToken.revoke!(...)
+            ...
+          end
+    metadata:
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp: "A07:2025 - Authentication Failures"
+
+  - id: destructive-seed
+    languages: [ruby]
+    severity: ERROR
+    message: >-
+      destroy_all/delete_all em db/seeds.rb: rodar o seed em produção apaga a
+      base inteira. Seeds devem ser idempotentes (find_or_create_by!).
+    paths:
+      include: ["backend/db/seeds.rb"]
+    pattern-either:
+      - pattern: $MODEL.destroy_all
+      - pattern: $MODEL.delete_all
+    metadata:
+      cwe: "CWE-1188: Initialization of a Resource with an Insecure Default"
+      owasp: "A02:2025 - Security Misconfiguration"
+
+  - id: hardcoded-seed-password
+    languages: [ruby]
+    severity: ERROR
+    message: >-
+      Senha fixa em seed: vira credencial padrão em qualquer ambiente
+      semeado (VULN-04). Leia de variável de ambiente.
+    paths:
+      include: ["backend/db/seeds.rb"]
+    pattern: '$M.create!(..., password: "...", ...)'
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A07:2025 - Authentication Failures"
+
+  - id: rails-development-env-in-compose
+    languages: [yaml]
+    severity: ERROR
+    message: >-
+      RAILS_ENV=development em docker compose: stack traces e /rails/info
+      expostos (VULN-05). Use production.
+    paths:
+      include: ["docker-compose*.yml", "compose*.yaml"]
+    pattern: "RAILS_ENV: development"
+    metadata:
+      cwe: "CWE-489: Active Debug Code"
+      owasp: "A02:2025 - Security Misconfiguration"
+
+  - id: vite-dev-server-exposed
+    languages: [dockerfile]
+    severity: ERROR
+    message: >-
+      Servidor de desenvolvimento do Vite exposto no container. Sirva o build
+      estático (nginx) em produção.
+    pattern-regex: 'CMD \[.*"npm",\s*"run",\s*"dev".*\]'
+    metadata:
+      cwe: "CWE-489: Active Debug Code"
+      owasp: "A02:2025 - Security Misconfiguration"

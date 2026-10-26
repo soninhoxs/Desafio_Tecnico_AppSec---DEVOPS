@@ -47,14 +47,14 @@ RUN BOOTSNAP_READONLY= bundle exec bootsnap precompile app/ lib/ && \
 # ---------- final ----------
 FROM base
 
-# Usuário sem privilégios (uid 1000). Nada roda como root.
-RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /usr/sbin/nologin
+# Usuário sem privilégios (uid 10001, fora da faixa de usuários do host). Nada roda como root.
+RUN groupadd --system --gid 10001 rails && \
+    useradd rails --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin
 
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build --chown=rails:rails /rails /rails
 
-USER 1000:1000
+USER 10001:10001
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}

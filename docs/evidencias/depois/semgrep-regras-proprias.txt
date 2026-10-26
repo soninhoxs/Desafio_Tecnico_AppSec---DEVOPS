@@ -1,0 +1,102 @@
+# Regras Semgrep próprias (security/semgrep/coursesphere.yml)
+# Semgrep 1.182.1 — 2026-10-26T19:20Z
+
+## Versão original (tag v0-original)
+                    
+                    
+┌──────────────────┐
+│ 12 Code Findings │
+└──────────────────┘
+                                                                       
+    backend/app/controllers/authentication_controller.rb
+   ❯❯❱ logout-without-
+       token-revocation                                                                                               
+          ❰❰ Blocking ❱❱
+          Logout que não revoga o token: o JWT continua válido até expirar (VULN-02). Grave o jti em
+          RevokedToken.                                                                             
+                                                                                                    
+           21┆ def logout
+           22┆   render json: { message: 'Logged out successfully' }, status: :ok
+                                                                
+    backend/app/controllers/lessons_controller.rb
+   ❯❯❱ lesson-read-
+       without-visibility-scope                                                                                    
+          ❰❰ Blocking ❱❱
+          Leitura de Lesson sem o escopo de visibilidade. Rascunhos de outro criador vazariam (VULN-01). Use
+          Lesson.visible_to(current_user) ou @course.lessons.visible_to(current_user).                      
+                                                                                                            
+            9┆ render json: @course.lessons
+            ⋮┆----------------------------------------
+           52┆ @lesson = Lesson.find(params[:id])
+                                               
+    backend/app/models/lesson.rb
+   ❯❯❱ unanchored-uri-
+       regexp-validation                                                                                              
+          ❰❰ Blocking ❱❱
+          URI::DEFAULT_PARSER.make_regexp / URI.regexp gera regex SEM âncoras e aceita qualquer esquema
+          (javascript:, data:). Valide com URI.parse + allowlist de esquema (VULN-06).                 
+                                                                                                       
+            9┆ validates :video_url, format: { with: URI::DEFAULT_PARSER.make_regexp, message: "deve ser
+               uma URL válida" }, allow_blank: true                                                     
+                                                         
+    backend/app/services/json_web_token.rb
+   ❯❯❱ jwt-decode-
+       without-explicit-algorithm                                                                                 
+          ❰❰ Blocking ❱❱
+          JWT.decode sem algoritmo explícito. Fixe o algoritmo (algorithm: "HS256") e exija claims
+          (required_claims) para evitar confusão de algoritmo.                                    
+                                                                                                  
+           10┆ decoded = JWT.decode(token, SECRET_KEY)[0]
+                                      
+    backend/db/seeds.rb
+   ❯❯❱ destructive-
+       seed                                                                                                        
+          ❰❰ Blocking ❱❱
+          destroy_all/delete_all em db/seeds.rb: rodar o seed em produção apaga a base inteira. Seeds devem
+          ser idempotentes (find_or_create_by!).                                                           
+                                                                                                           
+            7┆ Lesson.destroy_all
+            ⋮┆----------------------------------------
+            8┆ Course.destroy_all
+            ⋮┆----------------------------------------
+            9┆ User.destroy_all
+   
+   ❯❯❱ hardcoded-seed-
+       password                                                                                                       
+          ❰❰ Blocking ❱❱
+          Senha fixa em seed: vira credencial padrão em qualquer ambiente semeado (VULN-04). Leia de variável
+          de ambiente.                                                                                       
+                                                                                                             
+           13┆ instrutor_tech = User.create!(
+           14┆   name: "Instrutor Tech",
+           15┆   email: "tech@coursesphere.com",
+           16┆   password: "password123"
+           17┆ )
+            ⋮┆----------------------------------------
+           19┆ instrutor_design = User.create!(
+           20┆   name: "Instrutor Design",
+           21┆   email: "design@coursesphere.com",
+           22┆   password: "password123"
+           23┆ )
+                                     
+    docker-compose.yml
+   ❯❯❱ rails-
+       development-env-in-compose                                                                            
+          ❰❰ Blocking ❱❱
+          RAILS_ENV=development em docker compose: stack traces e /rails/info expostos (VULN-05). Use
+          production.                                                                                
+                                                                                                     
+           27┆ RAILS_ENV: development
+                                      
+    frontend/Dockerfile
+   ❯❯❱ vite-dev-
+       server-exposed                                                                                           
+          ❰❰ Blocking ❱❱
+          Servidor de desenvolvimento do Vite exposto no container. Sirva o build estático (nginx) em
+          produção.                                                                                  
+                                                                                                     
+            9┆ CMD ["npm", "run", "dev", "--", "--host"]
+
+
+## Versão corrigida (HEAD)
+(sem achados na versão corrigida)

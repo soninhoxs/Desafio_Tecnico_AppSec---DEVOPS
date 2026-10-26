@@ -1,0 +1,9 @@
+# Achados do Trivy aceitos conscientemente (com justificativa).
+misconfigurations:
+  - id: KSV-0109
+    paths:
+      - deploy/k8s/base/postgres.yaml
+    statement: >-
+      Falso positivo. O ConfigMap contém o script de init do PostgreSQL, que
+      referencia a variável psql :'app_pw' (lida do Secret em tempo de
+      execução). Nenhuma senha está no ConfigMap.
