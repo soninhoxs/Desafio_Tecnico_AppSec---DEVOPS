@@ -23,6 +23,11 @@ class ApplicationController < ActionController::API
     token if scheme&.casecmp?("Bearer")
   end
 
+  def render_rate_limited
+    response.set_header("Retry-After", "60")
+    render json: { error: "Too many requests. Try again later." }, status: :too_many_requests
+  end
+
   # Resposta única para "autenticado, mas sem permissão sobre o recurso".
   def deny_access!(_resource = nil)
     render json: { error: "Ação não permitida para este utilizador" }, status: :forbidden

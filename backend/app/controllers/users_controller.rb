@@ -1,6 +1,9 @@
 class UsersController < ApplicationController
-  skip_before_action :authorize_request, only: [:create]
-  before_action :authorize_request, only: [:me]
+  skip_before_action :authorize_request, only: :create
+
+  # Limita criação de contas em massa e enumeração de e-mails via cadastro.
+  rate_limit(**RateLimiting::SIGNUP_LIMIT, only: :create, name: "signup-by-ip",
+    store: RateLimiting.store, with: -> { render_rate_limited })
 
   def me
     render json: { 
