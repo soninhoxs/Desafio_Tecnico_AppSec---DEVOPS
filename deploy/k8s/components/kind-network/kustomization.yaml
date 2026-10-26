@@ -1,0 +1,6 @@
+# Ajustes de rede específicos do kind (compartilhados pelos overlays).
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - allow-kubelet-probes.yaml
