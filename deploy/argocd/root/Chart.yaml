@@ -1,0 +1,9 @@
+apiVersion: v2
+name: coursesphere-root
+description: >-
+  App-of-apps do ArgoCD. Gera as Applications da plataforma (Traefik,
+  metrics-server, Kyverno, kube-prometheus-stack, Loki, Alloy) e da aplicação
+  CourseSphere. O Terraform cria só esta Application "root"; todo o resto vem
+  do Git (GitOps).
+type: application
+version: 1.0.0
