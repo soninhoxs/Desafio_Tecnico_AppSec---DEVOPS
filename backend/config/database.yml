@@ -1,21 +1,31 @@
+# Credenciais NUNCA ficam neste arquivo: vêm de DATABASE_URL (produção) ou
+# das variáveis DB_* (dev/test). Os padrões abaixo servem só para o banco
+# local de desenvolvimento.
 default: &default
   adapter: postgresql
   encoding: unicode
-  host: db
-  username: postgres
-  password: password
+  # Uma conexão por thread do Puma (RAILS_MAX_THREADS).
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Falhar rápido se o banco não responde (o readiness tira a réplica do LB).
+  connect_timeout: 3
+  checkout_timeout: 3
+  variables:
+    statement_timeout: <%= ENV.fetch("DB_STATEMENT_TIMEOUT_MS", 5000) %>
 
 development:
   <<: *default
+  host: <%= ENV.fetch("DB_HOST", "localhost") %>
+  username: <%= ENV.fetch("DB_USER", "postgres") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "") %>
   database: coursesphere_development
 
 test:
   <<: *default
+  host: <%= ENV.fetch("DB_HOST", "localhost") %>
+  username: <%= ENV.fetch("DB_USER", "postgres") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "") %>
   database: coursesphere_test
 
 production:
   <<: *default
-  database: coursesphere_production
-  username: coursesphere
-  password: <%= ENV["COURSESPHERE_DATABASE_PASSWORD"] %>
+  url: <%= ENV["DATABASE_URL"] %>
