@@ -23,10 +23,14 @@ RUN apt-get update -qq && \
 # Ruby 4.0.9 traz a gem padrão json 2.18.0 (CVE-2026-33210, CRITICAL, com
 # correção em >= 2.19.2). O Bundler da aplicação já usa 2.19.9, mas o gemspec
 # default continua na imagem e o Trivy do CD escaneia a imagem, não o lockfile.
-# Instala a versão corrigida e apaga só os arquivos 2.18, para o `require "json"`
-# de antes do Bundler não cair no código vulnerável.
-RUN gem install json --version 2.19.9 --no-document \
- && find /usr/local/lib/ruby -name 'json-2.18*' -print0 | xargs -0 -r rm -rf
+# A extensão nativa precisa de compilador; a imagem slim não tem. Ele entra
+# só neste passo e sai em seguida, para não ficar na imagem final.
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential && \
+    gem install json --version 2.19.9 --no-document && \
+    find /usr/local/lib/ruby -name 'json-2.18*' -print0 | xargs -0 -r rm -rf && \
+    apt-get purge -y --auto-remove build-essential && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 ENV RAILS_ENV=production \
     BUNDLE_DEPLOYMENT=1 \
