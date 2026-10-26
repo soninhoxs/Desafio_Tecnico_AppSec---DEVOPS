@@ -1,7 +1,7 @@
 class CoursesController < ApplicationController
-  before_action :authorize_request 
-  before_action :set_course, only: [:show, :update, :destroy]
-  before_action :authorize_creator!, only: [:update, :destroy]
+  before_action :authorize_request
+  before_action :set_course, only: [ :show, :update, :destroy ]
+  before_action :authorize_creator!, only: [ :update, :destroy ]
 
   def index
     @courses = Course.all
@@ -39,7 +39,7 @@ class CoursesController < ApplicationController
   def set_course
     @course = Course.find(params[:id])
   rescue ActiveRecord::RecordNotFound
-    render json: { error: 'Course not found' }, status: :not_found
+    render json: { error: "Course not found" }, status: :not_found
   end
 
   def authorize_creator!
