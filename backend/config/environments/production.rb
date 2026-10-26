@@ -22,9 +22,14 @@ Rails.application.configure do
     redirect: { exclude: ->(request) { request.path.start_with?("/health") || request.path == "/metrics" } }
   }
 
-  # Log to STDOUT.
-  config.log_tags = [ :request_id ]
-  config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
+  # Logs estruturados: uma linha JSON por evento, em STDOUT (12-factor).
+  # O request_id vai como campo do JSON (Observability::RequestTelemetry),
+  # então não usamos log_tags. O Rails::Rack::Logger ("Started GET ...") sai
+  # do stack: a linha de acesso agora é o evento http_request em JSON.
+  stdout_logger = ActiveSupport::Logger.new($stdout)
+  stdout_logger.formatter = Observability::JsonLogFormatter.new
+  config.logger = ActiveSupport::TaggedLogging.new(stdout_logger)
+  config.middleware.delete Rails::Rack::Logger
 
   # Change to "debug" to log everything (including potentially personally-identifiable information!).
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")

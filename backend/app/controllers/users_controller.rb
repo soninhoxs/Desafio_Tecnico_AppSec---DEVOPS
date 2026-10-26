@@ -18,6 +18,7 @@ class UsersController < ApplicationController
   def create
     user = User.new(user_params)
     if user.save
+      security_event(:signup_success, user_id: user.id)
       token = JsonWebToken.encode(user_id: user.id)
       render json: { 
         token: token,
@@ -28,6 +29,7 @@ class UsersController < ApplicationController
         } 
       }, status: :created
     else
+      security_event(:signup_failure, fields: user.errors.attribute_names.map(&:to_s))
       render json: { errors: user.errors.full_messages }, status: :unprocessable_entity
     end
   end

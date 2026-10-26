@@ -16,12 +16,17 @@ class AuthenticationController < ApplicationController
     # Mesmo com a senha certa, conta bloqueada não entra — e a resposta é a
     # mesma de credencial inválida, para não revelar o bloqueio.
     if account&.locked?
+      security_event(:login_blocked_locked, user_id: account.id)
       render_invalid_credentials
     elsif user
       user.register_successful_login!
+      security_event(:login_success, user_id: user.id)
       render json: { token: JsonWebToken.encode(user_id: user.id), user: user_json(user) }, status: :ok
     else
-      account&.register_failed_login!
+      locked_now = account&.register_failed_login!
+      security_event(:login_failure, user_id: account&.id, email_fp: Observability::SecurityEvents.fingerprint(email),
+        known_account: !account.nil?)
+      security_event(:account_locked, user_id: account.id, minutes: User::LOCKOUT_PERIOD.in_minutes.to_i) if locked_now
       render_invalid_credentials
     end
   end
@@ -30,6 +35,7 @@ class AuthenticationController < ApplicationController
   # mais, mesmo que ainda não tenha expirado.
   def logout
     RevokedToken.revoke!(current_token_claims)
+    security_event(:token_revoked, user_id: current_user.id)
     render json: { message: "Logged out successfully" }, status: :ok
   end
 
