@@ -44,8 +44,8 @@ class AuthenticationControllerTest < ActionDispatch::IntegrationTest
       post "/signup", params: {
         name: "Novo Usuario",
         email: "novo@example.com",
-        password: "senha123",
-        password_confirmation: "senha123"
+        password: "Senha-Forte-2026",
+        password_confirmation: "Senha-Forte-2026"
       }, as: :json
     end
     assert_response :created
@@ -54,18 +54,25 @@ class AuthenticationControllerTest < ActionDispatch::IntegrationTest
     assert_equal "novo@example.com", json.dig("user", "email")
   end
 
+  test "registro com senha fraca retorna 422 (VULN-09)" do
+    assert_no_difference "User.count" do
+      post "/signup", params: { name: "Fraco", email: "fraco@example.com", password: "123456", password_confirmation: "123456" }, as: :json
+    end
+    assert_response :unprocessable_entity
+  end
+
   test "registro com email duplicado retorna 422" do
     post "/signup", params: {
       name: "Copia Alice",
       email: "alice@example.com",
-      password: "senha123"
+      password: "Senha-Forte-2026"
     }, as: :json
     assert_response :unprocessable_entity
     assert JSON.parse(response.body).key?("errors")
   end
 
   test "registro sem nome retorna 422" do
-    post "/signup", params: { email: "sem@nome.com", password: "senha123" }, as: :json
+    post "/signup", params: { email: "sem@nome.com", password: "Senha-Forte-2026" }, as: :json
     assert_response :unprocessable_entity
   end
 

@@ -99,7 +99,7 @@ export function Register() {
                 type={showPassword ? 'text' : 'password'}
                 required 
                 placeholder="••••••••"
-                minLength="6"
+                minLength="12"
                 value={formData.password}
                 onChange={handleChange}
                 spellCheck="false"
@@ -112,7 +112,7 @@ export function Register() {
                 )}
               </button>
             </div>
-            <p className="field-hint">Mínimo de 6 caracteres</p>
+            <p className="field-hint">Mínimo de 12 caracteres. Prefira uma frase longa; senhas comuns são recusadas.</p>
           </div>
 
           <div className="form-group">

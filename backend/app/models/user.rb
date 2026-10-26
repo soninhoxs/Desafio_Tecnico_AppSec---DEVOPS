@@ -1,4 +1,8 @@
 class User < ApplicationRecord
+  PASSWORD_MIN_LENGTH = 12
+  COMMON_PASSWORDS = Rails.root.join("config/common_passwords.txt").readlines(chomp: true)
+    .reject { |line| line.blank? || line.start_with?("#") }.map(&:downcase).to_set.freeze
+
   MAX_FAILED_LOGINS = 5
   LOCKOUT_PERIOD = 15.minutes
 
@@ -12,7 +16,9 @@ class User < ApplicationRecord
 
   validates :name, presence: true
   validates :email, presence: true, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
-  validates :password, presence: true, length: { minimum: 6 }
+  # has_secure_password já exige senha no cadastro e limita a 72 bytes (bcrypt).
+  validates :password, length: { minimum: PASSWORD_MIN_LENGTH }, allow_nil: true
+  validate :password_must_not_be_guessable, if: -> { password.present? }
 
   def locked?
     locked_until.present? && locked_until.future?
@@ -35,5 +41,21 @@ class User < ApplicationRecord
     return if failed_login_attempts.zero? && locked_until.nil?
 
     update_columns(failed_login_attempts: 0, locked_until: nil)
+  end
+
+  private
+
+  # Política inspirada no NIST SP 800-63B: tamanho mínimo + lista de senhas
+  # comuns, sem regras de "maiúscula/símbolo" que só geram senhas previsíveis.
+  def password_must_not_be_guessable
+    normalized = password.downcase
+    if COMMON_PASSWORDS.include?(normalized) || normalized.chars.uniq.size <= 2
+      errors.add(:password, "é muito comum ou fácil de adivinhar")
+    end
+
+    local_part = email.to_s.split("@").first.to_s.downcase
+    if local_part.length >= 4 && normalized.include?(local_part)
+      errors.add(:password, "não pode conter o seu e-mail")
+    end
   end
 end
