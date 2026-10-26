@@ -23,6 +23,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: coursesphere-db
+  namespace: coursesphere
   labels:
     app.kubernetes.io/name: coursesphere-db
     app.kubernetes.io/component: database

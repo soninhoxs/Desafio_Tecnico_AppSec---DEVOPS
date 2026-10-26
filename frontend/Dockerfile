@@ -21,16 +21,22 @@ FROM docker.io/nginxinc/nginx-unprivileged:1.31.7-alpine3.24
 # A tag da imagem fica congelada, mas os pacotes do Alpine continuam recebendo
 # correção. Sem este upgrade, um CVE HIGH/CRITICAL com fix publicado depois do
 # build da tag reprova o gate do Trivy no CD.
-# A imagem já vem como uid 101; pacotes só instalam como root.
+# A imagem base chega como uid 101. Subimos para 10001 (fora da tabela de
+# usuários do nó) e damos a esse uid os diretórios que o Nginx precisa escrever.
 USER root
-RUN apk upgrade --no-cache && apk add --no-cache curl
+RUN apk upgrade --no-cache && apk add --no-cache curl \
+ && addgroup -g 10001 -S app \
+ && adduser -S -D -H -u 10001 -G app app \
+ && for d in /var/cache/nginx /var/log/nginx /usr/share/nginx/html /etc/nginx/conf.d /tmp; do \
+      [ -e "$d" ] && chown -R 10001:10001 "$d"; \
+    done
 
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
-COPY --from=build --chown=101:101 /app/dist /usr/share/nginx/html
+COPY --from=build --chown=10001:10001 /app/dist /usr/share/nginx/html
 
-# curl vem da imagem (wget não). Escuta na 8080, sem privilégio de root.
-USER 101
+# curl (não wget). Escuta na 8080, sem root.
+USER 10001
 EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=3s --retries=3 \
   CMD ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/healthz"]

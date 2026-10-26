@@ -12,8 +12,9 @@ rescue URI::InvalidURIError
   false
 end
 
-# nosemgrep: unanchored-uri-regexp-validation -- reproduz a regex antiga só para comparação
-OLD_REGEX = URI::DEFAULT_PARSER.make_regexp
+# Reproduz a validação antiga, de propósito, só para comparar com a nova.
+# A regex não tem âncora: é exatamente a falha da VULN-06. Não é código da API.
+OLD_REGEX = URI::DEFAULT_PARSER.make_regexp # nosemgrep: security.semgrep.unanchored-uri-regexp-validation
 
 SAMPLES = [
   "javascript:alert(document.domain)",

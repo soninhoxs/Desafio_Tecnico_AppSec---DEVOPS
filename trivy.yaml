@@ -1,0 +1,5 @@
+# Dados das regras Rego do Trivy. Sem isto, KSV0125 só aceita GCR, ECR e
+# Azure CR — e marca ghcr.io (imagens nossas) e docker.io (Postgres oficial).
+rego:
+  data:
+    - security/trivy

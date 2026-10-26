@@ -26,6 +26,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: coursesphere-api
+  namespace: coursesphere
   labels:
     app.kubernetes.io/name: coursesphere-api
     app.kubernetes.io/component: api
@@ -193,6 +194,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: coursesphere-migrate
+  namespace: coursesphere
   labels:
     app.kubernetes.io/name: coursesphere-migrate
   annotations:

@@ -7,3 +7,16 @@ misconfigurations:
       Falso positivo. O ConfigMap contém o script de init do PostgreSQL, que
       referencia a variável psql :'app_pw' (lida do Secret em tempo de
       execução). Nenhuma senha está no ConfigMap.
+  - id: AVD-KSV-0020
+    paths:
+      - deploy/k8s/base/postgres.yaml
+    statement: >-
+      A imagem oficial postgres:18-alpine só tem o usuário "postgres" (uid 70).
+      initdb recusa um uid que não existe em /etc/passwd, então runAsUser > 10000
+      impede o banco de subir. O processo continua sem root.
+  - id: AVD-KSV-0021
+    paths:
+      - deploy/k8s/base/postgres.yaml
+    statement: >-
+      Mesma restrição da imagem oficial: o grupo do usuário postgres é 70.
+      runAsGroup acima de 10000 quebra a inicialização do volume.

@@ -36,9 +36,12 @@ class CoursesController < ApplicationController
 
   private
 
+  # Leitura é do catálogo: qualquer usuário autenticado vê qualquer curso.
+  # Alterar e apagar passam por authorize_creator! (só o criador).
   def set_course
-    @course = Course.find(params[:id])
-  rescue ActiveRecord::RecordNotFound
+    @course = Course.find_by(id: params[:id])
+    return if @course
+
     render json: { error: "Course not found" }, status: :not_found
   end
 
