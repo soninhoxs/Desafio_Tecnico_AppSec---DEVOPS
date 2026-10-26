@@ -1,0 +1,221 @@
+# Repositório Git observado pelo ArgoCD (o Terraform sobrescreve com var.repo_url).
+repoURL: https://github.com/CHANGE-ME/coursesphere.git
+targetRevision: main
+
+# Overlay da aplicação: "kind" (imagens do GHCR publicadas pelo CD) ou
+# "kind-local" (imagens construídas localmente, sem registry).
+appOverlay: kind
+
+# Ordem de sincronização (sync waves): plataforma primeiro, app por último.
+# Charts com versão FIXA (atualizações chegam por PR do Renovate/Dependabot).
+platform:
+  traefik:
+    enabled: true
+    wave: "-10"
+    namespace: traefik
+    repoURL: https://traefik.github.io/charts
+    chart: traefik
+    version: 42.1.3
+    values:
+      service:
+        type: NodePort
+      ports:
+        web:
+          nodePort: 30080      # mapeada para localhost:8080 pelo kind (Terraform)
+        websecure:
+          nodePort: 30443
+      ingressClass:
+        enabled: true
+        isDefaultClass: true
+      providers:
+        kubernetesCRD:
+          enabled: true
+          allowCrossNamespace: false
+        kubernetesIngress:
+          enabled: true
+      log:
+        format: json
+      accessLog:
+        enabled: true
+        format: json
+      resources:
+        requests: { cpu: 50m, memory: 64Mi }
+        limits: { cpu: 500m, memory: 256Mi }
+
+  metrics-server:
+    enabled: true
+    wave: "-10"
+    namespace: kube-system
+    repoURL: https://kubernetes-sigs.github.io/metrics-server
+    chart: metrics-server
+    version: 3.14.0
+    values:
+      args:
+        - --kubelet-insecure-tls   # kind usa certificados autoassinados no kubelet
+
+  kyverno:
+    enabled: true
+    wave: "-9"
+    namespace: kyverno
+    repoURL: https://kyverno.github.io/kyverno
+    chart: kyverno
+    version: 3.9.2
+    serverSideApply: true
+    values: {}
+
+  kube-prometheus-stack:
+    enabled: true
+    wave: "-8"
+    namespace: monitoring
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    version: 92.14.0
+    serverSideApply: true
+    values:
+      grafana:
+        admin:
+          existingSecret: grafana-admin   # criado pelo Terraform
+          userKey: admin-user
+          passwordKey: admin-password
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          hosts: [grafana.localhost]
+        sidecar:
+          dashboards:
+            enabled: true
+            label: grafana_dashboard
+            searchNamespace: ALL
+            folderAnnotation: grafana_folder
+            provider:
+              foldersFromFilesStructure: true
+        additionalDataSources:
+          - name: Loki
+            uid: loki
+            type: loki
+            access: proxy
+            url: http://loki.monitoring.svc:3100
+      prometheus:
+        prometheusSpec:
+          # Coleta ServiceMonitors/PrometheusRules de qualquer namespace.
+          serviceMonitorSelectorNilUsesHelmValues: false
+          podMonitorSelectorNilUsesHelmValues: false
+          ruleSelectorNilUsesHelmValues: false
+          retention: 7d
+          resources:
+            requests: { cpu: 100m, memory: 400Mi }
+            limits: { memory: 1Gi }
+      # Componentes do control plane não expostos no kind.
+      kubeEtcd: { enabled: false }
+      kubeControllerManager: { enabled: false }
+      kubeScheduler: { enabled: false }
+      kubeProxy: { enabled: false }
+
+  loki:
+    enabled: true
+    wave: "-7"
+    namespace: monitoring
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki
+    version: 7.5.0
+    values:
+      deploymentMode: SingleBinary
+      loki:
+        auth_enabled: false
+        commonConfig:
+          replication_factor: 1
+        storage:
+          type: filesystem
+        schemaConfig:
+          configs:
+            - from: "2026-01-01"
+              store: tsdb
+              object_store: filesystem
+              schema: v13
+              index:
+                prefix: loki_index_
+                period: 24h
+        limits_config:
+          retention_period: 168h
+      singleBinary:
+        replicas: 1
+      write: { replicas: 0 }
+      read: { replicas: 0 }
+      backend: { replicas: 0 }
+      gateway: { enabled: false }
+      chunksCache: { enabled: false }
+      resultsCache: { enabled: false }
+      lokiCanary: { enabled: false }
+      test: { enabled: false }
+
+  alloy:
+    enabled: true
+    wave: "-6"
+    namespace: monitoring
+    repoURL: https://grafana.github.io/helm-charts
+    chart: alloy
+    version: 1.14.3
+    values:
+      alloy:
+        configMap:
+          # Coleta os logs (JSON) dos pods e envia ao Loki.
+          content: |
+            discovery.kubernetes "pods" {
+              role = "pod"
+            }
+
+            discovery.relabel "pods" {
+              targets = discovery.kubernetes.pods.targets
+              rule {
+                source_labels = ["__meta_kubernetes_namespace"]
+                target_label  = "namespace"
+              }
+              rule {
+                source_labels = ["__meta_kubernetes_pod_name"]
+                target_label  = "pod"
+              }
+              rule {
+                source_labels = ["__meta_kubernetes_pod_container_name"]
+                target_label  = "container"
+              }
+              rule {
+                source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+                target_label  = "app"
+              }
+            }
+
+            loki.source.kubernetes "pods" {
+              targets    = discovery.relabel.pods.output
+              forward_to = [loki.process.json.receiver]
+            }
+
+            // Logs da API são JSON: promove level e event a labels.
+            loki.process "json" {
+              stage.json {
+                expressions = { level = "level", event = "event" }
+              }
+              stage.labels {
+                values = { level = "", event = "" }
+              }
+              forward_to = [loki.write.default.receiver]
+            }
+
+            loki.write "default" {
+              endpoint {
+                url = "http://loki.monitoring.svc:3100/loki/api/v1/push"
+              }
+            }
+      controller:
+        type: deployment
+        replicas: 1
+
+# Aplicações lidas direto deste repositório (Kustomize).
+gitApps:
+  kyverno-policies:
+    wave: "-5"
+    path: deploy/policies
+    namespace: kyverno
+  coursesphere-observability:
+    wave: "-3"
+    path: deploy/observability
+    namespace: monitoring

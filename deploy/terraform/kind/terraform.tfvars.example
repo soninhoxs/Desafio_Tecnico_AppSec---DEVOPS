@@ -1,0 +1,4 @@
+repo_url        = "https://github.com/<seu-usuario>/coursesphere.git"
+target_revision = "main"
+# kind (imagens do GHCR publicadas pelo CD) ou kind-local (scripts/kind_load_images.sh)
+app_overlay     = "kind"
