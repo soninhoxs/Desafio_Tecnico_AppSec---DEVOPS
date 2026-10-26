@@ -1,6 +1,15 @@
 require_relative "boot"
 
-require "rails/all"
+# Só os componentes do Rails que a API usa. Antes era "rails/all", que também
+# carregava Active Storage (com rotas públicas de upload em /rails/active_storage
+# e alvo do CVE-2026-66066), Action Mailbox, Action Text, Action Cable,
+# Action Mailer e Active Job — nenhum usado. Menos código carregado = menor
+# superfície de ataque.
+require "rails"
+require "active_model/railtie"
+require "active_record/railtie"
+require "action_controller/railtie"
+require "rails/test_unit/railtie"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -16,17 +25,18 @@ module App
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Configuration for the application, engines, and railties goes here.
-    #
-    # These settings can be overridden in specific environments using the files
-    # in config/environments, which are processed later.
-    #
-    # config.time_zone = "Central Time (US & Canada)"
-    # config.eager_load_paths << Rails.root.join("extras")
-
     # Only loads a smaller set of middleware suitable for API only apps.
-    # Middleware like session, flash, cookies can be added back manually.
-    # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # Cabeçalhos de segurança em todas as respostas da API.
+    # (O frontend recebe CSP/HSTS próprios do Nginx.)
+    config.action_dispatch.default_headers = {
+      "X-Frame-Options" => "DENY",
+      "X-Content-Type-Options" => "nosniff",
+      "X-Permitted-Cross-Domain-Policies" => "none",
+      "Referrer-Policy" => "no-referrer",
+      "Cross-Origin-Resource-Policy" => "same-origin",
+      "Content-Security-Policy" => "default-src 'none'; frame-ancestors 'none'"
+    }
   end
 end
