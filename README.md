@@ -19,15 +19,15 @@ Análise de segurança, correções, hardening, observabilidade e infraestrutura
 
 | ID | Vulnerabilidade | Severidade | Correção |
 |---|---|---|---|
-| VULN-04 | Credenciais padrão (`password123`) criadas em qualquer ambiente | Alta | `ebdd6e8` |
-| VULN-05 | Aplicação publicada em modo de desenvolvimento (stack traces, `/rails/info`, Vite dev) | Alta | `386a1ce` |
-| VULN-03 | Sem proteção contra força bruta no login | Alta | `416b854` |
-| VULN-07 | Dependências com CVEs conhecidas (30 gems, 14 npm) | Média | `8ca68c5` |
-| VULN-01 | Aulas em rascunho visíveis para qualquer usuário (controle de acesso) | Média | `cb35745` |
-| VULN-02 | Logout não invalida o JWT | Média | `076e105` |
-| VULN-09 | Política de senha fraca (`123456` aceita) | Média | `c24a90e` |
-| VULN-06 | `video_url` aceita `javascript:` (XSS armazenado latente) | Baixa | `72b5674` |
-| VULN-08 | Tempo do login revela e-mails cadastrados | Baixa | `01da412` |
+| VULN-04 | Credenciais padrão (`password123`) criadas em qualquer ambiente | Alta | `476f0c5` |
+| VULN-05 | Aplicação publicada em modo de desenvolvimento (stack traces, `/rails/info`, Vite dev) | Alta | `19b1aed` |
+| VULN-03 | Sem proteção contra força bruta no login | Alta | `fd20df1` |
+| VULN-07 | Dependências com CVEs conhecidas (30 gems, 14 npm) | Média | `dc94e81` |
+| VULN-01 | Aulas em rascunho visíveis para qualquer usuário (controle de acesso) | Média | `06cdccf` |
+| VULN-02 | Logout não invalida o JWT | Média | `16ce453` |
+| VULN-09 | Política de senha fraca (`123456` aceita) | Média | `b3859fd` |
+| VULN-06 | `video_url` aceita `javascript:` (XSS armazenado latente) | Baixa | `0994800` |
+| VULN-08 | Tempo do login revela e-mails cadastrados | Baixa | `ae89af9` |
 
 ---
 

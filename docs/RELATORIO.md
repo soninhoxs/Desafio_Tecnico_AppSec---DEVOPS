@@ -105,7 +105,7 @@ O controle de acesso principal ("um usuário não edita o curso de outro") **já
 | **Severidade** | **Média** — CVSS 3.1 **4.3** `AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N` |
 | **Categoria** | OWASP **A01:2025 Broken Access Control** · CWE-639 / CWE-284 |
 | **Onde** | `LessonsController#index` e `#show` (`backend/app/controllers/lessons_controller.rb`) |
-| **Correção** | commit `cb35745` |
+| **Correção** | commit `06cdccf` |
 
 **Descrição.** A regra "só o criador mexe no curso" era aplicada em `create`, `update` e `destroy`, mas **não na leitura**. `GET /courses/:id/lessons` devolvia todas as aulas, inclusive as com `status: "draft"`, e `GET /lessons/:id` devolvia qualquer aula pelo ID. Como os IDs são sequenciais, dava para percorrer todos os rascunhos da plataforma.
 
@@ -140,7 +140,7 @@ Corrigido: a listagem não traz o rascunho e `GET /lessons/55` responde **404**.
 | **Severidade** | **Média** — CVSS 3.1 **4.8** `AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N` |
 | **Categoria** | OWASP **A07:2025 Authentication Failures** · CWE-613 |
 | **Onde** | `AuthenticationController#logout`, `JsonWebToken`, `AuthContext.jsx` |
-| **Correção** | commit `076e105` |
+| **Correção** | commit `16ce453` |
 
 **Descrição.** O JWT valia 1 hora e o servidor não guardava estado. O `DELETE /logout` só respondia "Logged out" e o frontend apagava o token do `localStorage`. **O token continuava aceito pela API** até expirar.
 
@@ -175,7 +175,7 @@ curl -s -o /dev/null -w '%{http_code}\n' $API/me -H "Authorization: Bearer $TOKE
 | **Severidade** | **Alta** (contexto) — CVSS 3.1 **6.5** `AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N` |
 | **Categoria** | OWASP **A07:2025 Authentication Failures** · CWE-307 |
 | **Onde** | `POST /login`, `POST /signup` |
-| **Correção** | commit `416b854` (+ Nginx/Traefik em `8efbacd` e `6e0e6f4`) |
+| **Correção** | commit `fd20df1` (+ Nginx/Traefik em `67b74e6` e `df65d5c`) |
 
 **Descrição.** Tentativas ilimitadas de login, sem atraso, bloqueio, alerta ou registro.
 
@@ -210,7 +210,7 @@ done
 | **Severidade** | **Alta** — CVSS 3.1 **8.6** `AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:H/A:L` |
 | **Categoria** | OWASP **A07:2025 Authentication Failures** / A02:2025 · CWE-1392, CWE-798 |
 | **Onde** | `backend/entrypoint.sh`, `backend/db/seeds.rb`, `README.md` |
-| **Correção** | commit `ebdd6e8` |
+| **Correção** | commit `476f0c5` |
 
 **Descrição.** O `entrypoint.sh` rodava `rails db:prepare` **em todo start do container e em qualquer ambiente**. Num banco vazio, esse comando executa os seeds, que criavam `tech@coursesphere.com` e `design@coursesphere.com` com a senha `password123`, documentada no README público. O seed também começava com `User.destroy_all`.
 
@@ -241,7 +241,7 @@ curl -s -X POST $API/login -H 'Content-Type: application/json' \
 | **Severidade** | **Alta** (contexto) — CVSS 3.1 **5.3** `AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
 | **Categoria** | OWASP **A02:2025 Security Misconfiguration** · CWE-489, CWE-209, CWE-250, CWE-798 |
 | **Onde** | `docker-compose.yml`, `backend/Dockerfile`, `frontend/Dockerfile`, `config/database.yml` |
-| **Correção** | commits `386a1ce`, `8efbacd`, `8ca68c5` |
+| **Correção** | commits `19b1aed`, `67b74e6`, `dc94e81` |
 
 **Descrição.** O único artefato de deploy (docker compose) subia:
 - a API com `RAILS_ENV=development`: erros devolvem **exceção e stack trace completos** (caminhos de arquivo, versões de gems). `GET /rails/info/properties` e `/rails/info/routes` ficam abertos **sem autenticação**;
@@ -278,7 +278,7 @@ curl -s $API/lessons/999999999 -H "Authorization: Bearer $TOKEN_A"
 | **Severidade** | **Baixa** (contexto) — CVSS 3.1 **4.4** `AV:N/AC:H/PR:L/UI:R/S:C/C:L/I:L/A:N` |
 | **Categoria** | OWASP **A05:2025 Injection** · CWE-79, CWE-20 |
 | **Onde** | `Lesson` (`validates :video_url, format: { with: URI::DEFAULT_PARSER.make_regexp }`), `CourseDetails.jsx` |
-| **Correção** | commit `72b5674` |
+| **Correção** | commit `0994800` |
 
 **Descrição.** `URI::DEFAULT_PARSER.make_regexp` gera uma regex **sem âncoras e sem restrição de esquema**. Ela aceita `javascript:alert(document.domain)`, `data:`, `vbscript:` e até texto livre que só *contenha* algo parecido com uma URI. A validação do formulário React é só do lado do cliente e é contornada chamando a API direto. O valor é renderizado em `<a href={lesson.video_url}>`.
 
@@ -307,7 +307,7 @@ https://youtube.com/watch?v=abc123            antigo=ACEITA  novo=ACEITA
 | **Severidade** | **Média** (contexto) — CVSS 3.1 **7.4** (pior CVE alcançável: `jwt`, `AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N`) |
 | **Categoria** | OWASP **A03:2025 Software Supply Chain Failures** · CWE-1395 |
 | **Onde** | `backend/Gemfile.lock`, `frontend/package-lock.json` |
-| **Correção** | commit `8ca68c5` |
+| **Correção** | commit `dc94e81` |
 
 **Descrição.** bundler-audit: **30 avisos** em 14 gems. npm audit: **14** (11 altas). Destaques e **análise de explorabilidade**:
 
@@ -334,7 +334,7 @@ https://youtube.com/watch?v=abc123            antigo=ACEITA  novo=ACEITA
 | **Severidade** | **Baixa** (contexto) — CVSS 3.1 **5.3** `AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N` |
 | **Categoria** | OWASP **A07:2025** · CWE-208 (discrepância de tempo), CWE-204 |
 | **Onde** | `AuthenticationController#login` |
-| **Correção** | commit `01da412` |
+| **Correção** | commit `ae89af9` |
 
 **Descrição.** `User.find_by_email(...)&.authenticate(...)` só calcula o bcrypt (≈250 ms com custo 12) quando o e-mail existe. E-mail inexistente responde em poucos ms. Mesmo com a mensagem genérica, o **tempo** revela quem tem conta.
 
@@ -355,7 +355,7 @@ https://youtube.com/watch?v=abc123            antigo=ACEITA  novo=ACEITA
 | **Severidade** | **Média** — CVSS 3.1 **4.8** `AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N` |
 | **Categoria** | OWASP **A07:2025** · CWE-521 |
 | **Onde** | `User` (`validates :password, length: { minimum: 6 }`) |
-| **Correção** | commit `c24a90e` |
+| **Correção** | commit `b3859fd` |
 
 **Descrição / reprodução.** `POST /signup` com senha `123456` → **201** na versão original (corrigido: 422).
 
@@ -530,12 +530,12 @@ Toda a configuração do Kubernetes/ArgoCD foi validada sem cluster: **todos os 
 
 | Achado | Commit | Testes automatizados |
 |---|---|---|
-| VULN-01 | `cb35745` | `lessons_controller_test.rb` (6 novos) |
-| VULN-02 | `076e105` | `authentication_controller_test.rb` (7 novos) |
-| VULN-03 | `416b854` | `brute_force_protection_test.rb` (6) |
-| VULN-04 | `ebdd6e8` | seeds no CI + Semgrep |
-| VULN-05 | `386a1ce`, `8efbacd` | PoC + Semgrep + Trivy |
-| VULN-06 | `72b5674` | `lesson_test.rb` (10 novos), `lessons_controller_test.rb` (1) |
-| VULN-07 | `8ca68c5` | bundler-audit / npm audit / Trivy no CI |
-| VULN-08 | `01da412` | `authentication_controller_test.rb` (2 novos) |
-| VULN-09 | `c24a90e` | `user_test.rb` (6 novos), `authentication_controller_test.rb` (1) |
+| VULN-01 | `06cdccf` | `lessons_controller_test.rb` (6 novos) |
+| VULN-02 | `16ce453` | `authentication_controller_test.rb` (7 novos) |
+| VULN-03 | `fd20df1` | `brute_force_protection_test.rb` (6) |
+| VULN-04 | `476f0c5` | seeds no CI + Semgrep |
+| VULN-05 | `19b1aed`, `67b74e6` | PoC + Semgrep + Trivy |
+| VULN-06 | `0994800` | `lesson_test.rb` (10 novos), `lessons_controller_test.rb` (1) |
+| VULN-07 | `dc94e81` | bundler-audit / npm audit / Trivy no CI |
+| VULN-08 | `ae89af9` | `authentication_controller_test.rb` (2 novos) |
+| VULN-09 | `b3859fd` | `user_test.rb` (6 novos), `authentication_controller_test.rb` (1) |
