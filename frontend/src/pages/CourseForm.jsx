@@ -28,7 +28,7 @@ export function CourseForm() {
             end_date: res.data.end_date
           });
         })
-        .catch(err => setError("Erro ao carregar os detalhes do curso."))
+        .catch(() => setError("Erro ao carregar os detalhes do curso."))
         .finally(() => setLoading(false));
     }
   }, [id, isEditing]);
