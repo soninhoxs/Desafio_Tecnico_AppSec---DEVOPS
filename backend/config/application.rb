@@ -15,6 +15,9 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# Logs JSON, métricas e eventos de segurança (lib/observability, fora do autoloader).
+require_relative "../lib/observability/boot"
+
 module App
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -23,10 +26,13 @@ module App
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    config.autoload_lib(ignore: %w[assets tasks observability])
 
     # Only loads a smaller set of middleware suitable for API only apps.
     config.api_only = true
+
+    # Log + métricas por requisição (depois do RemoteIp: IP real atrás do LB).
+    config.middleware.insert_after ActionDispatch::RemoteIp, Observability::RequestTelemetry
 
     # Cabeçalhos de segurança em todas as respostas da API.
     # (O frontend recebe CSP/HSTS próprios do Nginx.)
