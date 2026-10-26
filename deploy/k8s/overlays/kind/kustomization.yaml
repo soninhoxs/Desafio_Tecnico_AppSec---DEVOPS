@@ -6,15 +6,15 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../base
+- ../../base
 
 components:
-  - ../../components/kind-network
+- ../../components/kind-network
 
 images:
-  - name: ghcr.io/coursesphere/coursesphere-api
-    newName: ghcr.io/CHANGE-ME/coursesphere-api
-    newTag: initial
-  - name: ghcr.io/coursesphere/coursesphere-frontend
-    newName: ghcr.io/CHANGE-ME/coursesphere-frontend
-    newTag: initial
+- name: ghcr.io/coursesphere/coursesphere-api
+  newName: ghcr.io/soninhoxs/coursesphere-api
+  newTag: sha-57faf815c6d9
+- name: ghcr.io/coursesphere/coursesphere-frontend
+  newName: ghcr.io/soninhoxs/coursesphere-frontend
+  newTag: sha-57faf815c6d9
