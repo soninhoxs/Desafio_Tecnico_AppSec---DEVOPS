@@ -10,6 +10,9 @@ module ActiveSupport
     # Carrega todos os fixtures
     fixtures :all
 
+    # Cada teste começa com o contador de rate limiting zerado.
+    setup { RateLimiting.store.clear }
+
     # Helper: gera um token JWT válido para um usuário e retorna os headers de auth
     def auth_headers_for(user)
       token = JsonWebToken.encode(user_id: user.id)
