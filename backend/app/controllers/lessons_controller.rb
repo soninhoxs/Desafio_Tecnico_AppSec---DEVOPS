@@ -1,12 +1,12 @@
 class LessonsController < ApplicationController
-  before_action :authorize_request
-  before_action :set_course, only: [:index, :create]
-  before_action :set_lesson, only: [:show, :update, :destroy]
-  before_action :authorize_creator!, only: [:create, :update, :destroy]
+  before_action :set_course, only: %i[index create]
+  before_action :set_lesson, only: %i[show update destroy]
+  before_action :authorize_creator!, only: %i[create update destroy]
 
   # GET /courses/:course_id/lessons
+  # Rascunhos só aparecem para o criador do curso.
   def index
-    render json: @course.lessons
+    render json: @course.lessons.visible_to(current_user).order(:id)
   end
 
   # GET /lessons/:id
@@ -43,21 +43,21 @@ class LessonsController < ApplicationController
 
   def set_course
     @course = Course.find_by(id: params[:course_id])
-    if @course.nil?
-      render json: { error: 'Course not found for lessons' }, status: :unprocessable_entity
-    end
+    render json: { error: "Course not found" }, status: :not_found if @course.nil?
   end
 
+  # A busca já aplica a regra de visibilidade: um rascunho de outro criador
+  # responde 404 (e não 403), para não confirmar que a aula existe.
   def set_lesson
-    @lesson = Lesson.find(params[:id])
+    @lesson = Lesson.visible_to(current_user).find_by(id: params[:id])
+    render json: { error: "Lesson not found" }, status: :not_found if @lesson.nil?
   end
 
   def authorize_creator!
-    # Se viermos do create, checamos @course. Se viermos de update/destroy, checamos @lesson.course
-    course_to_check = @course || @lesson.course
-    if course_to_check.creator != current_user
-      render json: { error: "Ação não permitida para este utilizador" }, status: :forbidden
-    end
+    course = @course || @lesson.course
+    return if course.creator_id == current_user.id
+
+    deny_access!(course)
   end
 
   def lesson_params

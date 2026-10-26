@@ -30,6 +30,51 @@ class LessonsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @lesson.title, json["title"]
   end
 
+  # ─── VULN-01: rascunhos só para o criador do curso ───────────────────────
+
+  test "nao-criador nao ve rascunhos na listagem de aulas" do
+    draft = lessons(:draft_lesson) # react_course, criado por bob
+    get "/courses/#{draft.course_id}/lessons", headers: auth_headers_for(@alice)
+    assert_response :ok
+    ids = JSON.parse(response.body).map { |l| l["id"] }
+    assert_not_includes ids, draft.id
+  end
+
+  test "criador ve os proprios rascunhos na listagem" do
+    draft = lessons(:draft_lesson)
+    get "/courses/#{draft.course_id}/lessons", headers: auth_headers_for(@bob)
+    assert_response :ok
+    ids = JSON.parse(response.body).map { |l| l["id"] }
+    assert_includes ids, draft.id
+  end
+
+  test "nao-criador recebe 404 ao abrir rascunho pelo id" do
+    get "/lessons/#{lessons(:draft_lesson).id}", headers: auth_headers_for(@alice)
+    assert_response :not_found
+  end
+
+  test "criador abre o proprio rascunho pelo id" do
+    get "/lessons/#{lessons(:draft_lesson).id}", headers: auth_headers_for(@bob)
+    assert_response :ok
+  end
+
+  test "nao-criador nao altera nem exclui rascunho de outro (404)" do
+    draft = lessons(:draft_lesson)
+    patch "/lessons/#{draft.id}", params: { lesson: { title: "Invadido" } },
+      headers: auth_headers_for(@alice), as: :json
+    assert_response :not_found
+    assert_no_difference "Lesson.count" do
+      delete "/lessons/#{draft.id}", headers: auth_headers_for(@alice)
+    end
+    assert_response :not_found
+    assert_equal "Conceitos Avancados", draft.reload.title
+  end
+
+  test "listar aulas de curso inexistente retorna 404" do
+    get "/courses/999999/lessons", headers: auth_headers_for(@alice)
+    assert_response :not_found
+  end
+
   # ─── POST /courses/:course_id/lessons (create) ───────────────────────────
 
   test "criador do curso cria aula valida" do
