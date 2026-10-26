@@ -1,7 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# Remove PID de execuções anteriores (o container pode ter sido reiniciado).
+# /rails/tmp é tmpfs vazio no compose (rootfs read-only). O diretório criado
+# no build fica escondido pelo volume, e `rm -f` de um caminho cujo pai não
+# existe sai com status 1 — com `set -e` o container morre antes do Puma.
+mkdir -p tmp/pids tmp/cache tmp/sockets
 rm -f tmp/pids/server.pid
 
 # Migrações NÃO rodam mais em todo start de container:

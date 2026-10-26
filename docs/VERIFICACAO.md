@@ -90,7 +90,11 @@ O que tem que aparecer:
 2. `lb_demo.py` mostra `x-served-by=api-1` **e** `api-2`. Se só uma réplica aparecer, o balanceador ou o health da outra réplica falhou.
 3. O PoC imprime `CORRIGIDO` ou `PROTEGIDO` em todos os casos. Qualquer `VULNERÁVEL` é falha.
 
-Health checks do compose usam **curl**, não wget. A imagem `nginxinc/nginx-unprivileged` instala curl e não garante wget. Um `HEALTHCHECK` com wget marca o container como unhealthy; o Compose espera `service_healthy` no frontend antes de subir o balanceador e o `up` termina com erro. Foi isso que derrubou o job E2E da versão corrigida.
+O `docker compose up` desta versão espera o serviço `migrate` terminar com sucesso antes de subir as duas réplicas. Se ele sai com erro, o job morre em cerca de um minuto, bem antes do timeout de 480s do `wait_for_http`. As causas que já derrubaram esse passo:
+
+- `config/initializers/structured_logging.rb` chamava `ActionController::LogSubscriber.detach_from` em produção. A API não carrega esse subscriber (não usa o railtie completo), a constante não existe e o boot levanta `NameError`. O teste de CI não pega isso: o initializer só roda com `RAILS_ENV=production`.
+- `entrypoint.sh` faz `rm -f tmp/pids/server.pid`. No compose, `/rails/tmp` é um tmpfs vazio por cima do diretório criado no build. Sem `mkdir -p` antes, o `rm` falha, o `set -e` encerra o container e o migrate não chega a rodar.
+- O healthcheck do Nginx precisa de **curl**. A imagem `nginxinc/nginx-unprivileged` não traz wget. Probe com wget deixa o frontend `unhealthy` e o balanceador, que espera `service_healthy`, não sobe.
 
 Para a versão original (tem que continuar vulnerável):
 
@@ -115,6 +119,14 @@ trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 <imagem>
 
 Por isso os Dockerfiles atualizam os pacotes do sistema no build (`apk upgrade` no frontend, `apt-get upgrade` na API), mantendo a tag da imagem base fixa. A tag pinada evita um salto silencioso de Nginx ou de Ruby; o upgrade pega o patch de segurança que saiu depois dessa tag.
 
+Isso não cobre gem **padrão** do interpretador. Ruby 4.0.9 inclui `json` 2.18.0 em `/usr/local/lib/ruby/gems/4.0.0/specifications/default/`. O `Gemfile.lock` já trava `json` 2.19.9 (acima do corrigido, `>= 2.19.2`), mas o gemspec default continua na imagem. O gate viu exatamente isto:
+
+| Biblioteca | CVE | Severidade | Instalada | Corrigida em |
+|---|---|---|---|---|
+| json (gemspec default) | CVE-2026-33210 | CRITICAL | 2.18.0 | `>= 2.19.2` |
+
+O Dockerfile da API instala `json` 2.19.9 e apaga os arquivos `json-2.18*`. Sem apagar o gemspec, o Trivy continua reprovando mesmo com o lockfile limpo e com `apt-get upgrade`.
+
 Conferir localmente, com Docker e Trivy:
 
 ```bash
@@ -133,10 +145,10 @@ Status 0 nos dois comandos é o mesmo critério do CD.
 | Backend — testes, passo "Migrations geram exatamente o schema" | o `git diff` no log | `schema.rb` foi editado ou uma migration nova não foi dumpada. Rode a seção 3. |
 | Backend — testes, passo dos testes | o primeiro `Error` do log | se for `SolidCache::ActiveJob`, o eager load carregou `ExpiryJob` sem a biblioteca `active_job`. Outros erros são regressão de autorização, senha ou JWT (o teste cita o ID VULN-0N). |
 | Frontend — lint e build | ESLint | regra de React ou de segurança no `frontend/src`. |
-| E2E versão corrigida, "Sobe o ambiente" | `docker compose logs` (o workflow imprime as últimas 200 linhas) | healthcheck, migration ou seed. Frontend unhealthy quase sempre é probe com binário que a imagem não tem. API unhealthy: `/health/ready` não fala com o PostgreSQL. |
+| E2E versão corrigida, "Sobe o ambiente" | `docker compose logs migrate` (o workflow imprime as últimas 200 linhas) | o migrate sai antes do Puma. `NameError` em initializer só aparece em produção. `rm:` no entrypoint é o tmpfs de `/rails/tmp`. Frontend `unhealthy` é probe com binário que a imagem não tem. |
 | E2E versão corrigida, PoC | a linha `VULNERÁVEL` | a correção regrediu. O ID no PoC aponta o achado no relatório. |
 | E2E versão original | um caso `CORRIGIDO` quando o esperado era falha | a tag `v0-original` foi movida, ou o PoC mudou e não distingue mais as duas versões. |
-| CD, gate do Trivy | a tabela HIGH/CRITICAL | pacote do SO na imagem. Atualize o `apk`/`apt` do Dockerfile ou a tag da base se o patch ainda não entrou no repositório da distro. |
+| CD, gate do Trivy | a tabela HIGH/CRITICAL da imagem, não o `npm audit` | pacote do SO (`apt`/`apk`) ou gem padrão do Ruby que o lockfile não substitui. CVE sem versão corrigida não reprova (`--ignore-unfixed`). |
 | Security | a ferramenta no nome do step | Semgrep próprio bloqueia; o restante é informativo ou gate, conforme `security.yml`. |
 
 O workflow E2E da versão original e o da versão corrigida são independentes. Um verde e o outro vermelho é informativo: o original provar o achado não conserta o compose da `main`.
