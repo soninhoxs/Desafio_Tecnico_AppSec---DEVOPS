@@ -1,0 +1,667 @@
+Download ruby-advisory-db ...
+Cloning into '~/.local/share/ruby-advisory-db'...
+ruby-advisory-db:
+  advisories:	1274 advisories
+  last updated:	2026-10-26 09:56:27 -0400
+  commit:	04bbdaed29a22b4539f899ac1d6863ddaa326074
+Name: activestorage
+Version: 8.1.3
+CVE: CVE-2026-66066
+GHSA: GHSA-xr9x-r78c-5hrm
+Criticality: Unknown
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-66066
+Title: Possible arbitrary file read and remote code execution in Active Storage variant processing
+Solution: update to '~> 7.2.3, >= 7.2.3.2', '~> 8.0.5, >= 8.0.5.1', '>= 8.1.3.1'
+
+Name: concurrent-ruby
+Version: 1.3.6
+CVE: CVE-2026-54904
+GHSA: GHSA-h8w8-99g7-qmvj
+Criticality: High
+URL: https://nvd.nist.gov/vuln/detail/CVE-2026-54904
+Title: Concurrent Ruby - `AtomicReference#update` livelocks when the stored value is `Float::NAN`
+Solution: update to '>= 1.3.7'
+
+Name: concurrent-ruby
+Version: 1.3.6
+CVE: CVE-2026-54905
+GHSA: GHSA-wv3x-4vxv-whpp
+Criticality: Medium
+URL: https://nvd.nist.gov/vuln/detail/CVE-2026-54905
+Title: Concurrent Ruby - `ReentrantReadWriteLock` read-count overflow grants a write lock without exclusivity
+Solution: update to '>= 1.3.7'
+
+Name: concurrent-ruby
+Version: 1.3.6
+CVE: CVE-2026-54906
+GHSA: GHSA-6wx8-w4f5-wwcr
+Criticality: Unknown
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-54906
+Title: Concurrent Ruby - ReadWriteLock allows wrong-thread write release and stray read-release counter corruption
+Solution: update to '>= 1.3.7'
+
+Name: crass
+Version: 1.0.6
+GHSA: GHSA-6jxj-px6v-747w
+Criticality: Unknown
+URL: https://github.com/rgrove/crass/security/advisories/GHSA-6jxj-px6v-747w
+Title: Deeply nested CSS blocks and functions can trigger a SystemStackError or excessive memory usage
+Solution: update to '>= 1.0.7'
+
+Name: crass
+Version: 1.0.6
+GHSA: GHSA-6wmf-3r64-vcwv
+Criticality: Unknown
+URL: https://github.com/rgrove/crass/security/advisories/GHSA-6wmf-3r64-vcwv
+Title: Large numeric exponents cause CPU and memory denial of service
+Solution: update to '>= 1.0.7'
+
+Name: crass
+Version: 1.0.6
+GHSA: GHSA-8vfg-2r28-hvhj
+Criticality: Unknown
+URL: https://github.com/rgrove/crass/security/advisories/GHSA-8vfg-2r28-hvhj
+Title: Non-ASCII characters cause superlinear CPU consumption
+Solution: update to '>= 1.0.7'
+
+Name: crass
+Version: 1.0.6
+GHSA: GHSA-pq4g-8rxf-4g29
+Criticality: Unknown
+URL: https://github.com/rgrove/crass/security/advisories/GHSA-pq4g-8rxf-4g29
+Title: Incorrect tokenization of bad URLs enables CSS sanitizer bypass
+Solution: update to '>= 1.0.8'
+
+Name: crass
+Version: 1.0.6
+GHSA: GHSA-wwpr-jff3-395c
+Criticality: Unknown
+URL: https://github.com/rgrove/crass/security/advisories/GHSA-wwpr-jff3-395c
+Title: A large number of adjacent CSS comments can trigger a SystemStackError
+Solution: update to '>= 1.0.7'
+
+Name: json
+Version: 2.19.5
+CVE: CVE-2026-54696
+GHSA: GHSA-x2f5-4prf-w687
+Criticality: Low
+URL: https://nvd.nist.gov/vuln/detail/CVE-2026-54696
+Title: JSON generator heap buffer overflow when streaming to an IO
+Solution: update to '>= 2.19.9'
+
+Name: jwt
+Version: 2.10.2
+CVE: CVE-2026-45363
+GHSA: GHSA-c32j-vqhx-rx3x
+Criticality: High
+URL: https://www.cve.org/CVERecord?id=CVE-2026-45363
+Title: ruby-jwt: Empty-key HMAC bypass; cross-language sibling of CVE-2026-44351
+Solution: update to '~> 2.10.3', '>= 3.2.0'
+
+Name: loofah
+Version: 2.25.1
+GHSA: GHSA-5qhf-9phg-95m2
+Criticality: Unknown
+URL: https://github.com/flavorjones/loofah/security/advisories/GHSA-5qhf-9phg-95m2
+Title: Loofah `allowed_uri?` does not detect `javascript:` URIs split by numeric character references without semicolons
+Solution: update to '>= 2.25.2'
+
+Name: loofah
+Version: 2.25.1
+CVE: CVE-2026-73491
+GHSA: GHSA-8whx-365g-h9vv
+Criticality: Unknown
+URL: https://github.com/flavorjones/loofah/security/advisories/GHSA-8whx-365g-h9vv
+Title: Loofah `allowed_uri?` does not detect `javascript:` URIs split by named whitespace character references
+Solution: update to '>= 2.25.2'
+
+Name: loofah
+Version: 2.25.1
+CVE: CVE-2026-73490
+GHSA: GHSA-9wjq-cp2p-hrgf
+Criticality: Medium
+URL: https://github.com/flavorjones/loofah/security/advisories/GHSA-9wjq-cp2p-hrgf
+Title: SVG `href` attribute bypasses local-reference restriction in Loofah
+Solution: update to '>= 2.25.2'
+
+Name: mail
+Version: 2.9.0
+CVE: CVE-2026-63435
+GHSA: GHSA-mvxr-6m87-mv2q
+Criticality: Medium
+URL: https://github.com/mikel/mail/security/advisories/GHSA-mvxr-6m87-mv2q
+Title: Email address spoofing via malformed RFC 2047 encoded-words in mail
+Solution: update to '>= 2.9.1'
+
+Name: msgpack
+Version: 1.8.0
+CVE: CVE-2026-54522
+GHSA: GHSA-4mrv-5p47-p938
+Criticality: Unknown
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-54522
+Title: DFVULN-839 - Use-After-Free in MessagePack::Buffer#clear Enables Cross-Buffer Disclosure
+Solution: update to '>= 1.8.2'
+
+Name: net-imap
+Version: 0.6.4
+CVE: CVE-2026-47240
+GHSA: GHSA-8p34-64r3-mwg8
+Criticality: Medium
+URL: https://www.cve.org/CVERecord?id=CVE-2026-47240
+Title: Net::IMAP: Command Injection via non-synchronizing literal in "raw" argument
+Solution: update to '~> 0.5.15', '>= 0.6.4.1'
+
+Name: net-imap
+Version: 0.6.4
+CVE: CVE-2026-47241
+GHSA: GHSA-c4fp-cxrr-mj66
+Criticality: Low
+URL: https://www.cve.org/CVERecord?id=CVE-2026-47241
+Title: Net::IMAP: Denial of Service via incomplete raw argument validation
+Solution: update to '~> 0.5.15', '>= 0.6.4.1'
+
+Name: net-imap
+Version: 0.6.4
+CVE: CVE-2026-47242
+GHSA: GHSA-46q3-7gv7-qmgg
+Criticality: Medium
+URL: https://www.cve.org/CVERecord?id=CVE-2026-47242
+Title: Net::IMAP: Command Injection via ID command argument
+Solution: update to '~> 0.5.15', '>= 0.6.4.1'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5prr-v3j2-97mh
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5prr-v3j2-97mh
+Title: Nokogiri: Possible Out-of-Bounds Read in `Nokogiri::XML::NodeSet#[]`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5v8h-3h3q-446p
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5v8h-3h3q-446p
+Title: Nokogiri: Possible Use-After-Free when `Nokogiri::XML::Document#encoding=` raises an exception
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-8678-w3jw-xfc2
+Criticality: Low
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-8678-w3jw-xfc2
+Title: Nokogiri: XML::Schema on JRuby allows network requests when NONET is set, bypassing CVE-2020-26247
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-9cv2-cfxc-v4v2
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-9cv2-cfxc-v4v2
+Title: Nokogiri: Null Pointer Dereference calling methods on uninitialized wrapper classes
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-g9g8-vgvw-g3vf
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-g9g8-vgvw-g3vf
+Title: Possible invalid memory read when calling `Nokogiri::XML::Node#initialize_copy_with_args` with incorrect argument type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-p67v-3w7g-wjg7
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-p67v-3w7g-wjg7
+Title: Nokogiri: Possible Use-After-Free when directly using `NokogirI::XML::XPathContext` beyond document lifetime
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-phwj-rprq-35pp
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-phwj-rprq-35pp
+Title: Nokogiri: Possible Use-After-Free when setting an attribute value via `Nokogiri::XML::Attr#value=` or `#content=`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wfpw-mmfh-qq69
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wfpw-mmfh-qq69
+Title: Nokogiri: Possible Use-After-Free in XInclude Processing
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wjv4-x9w8-wm3h
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wjv4-x9w8-wm3h
+Title: Nokogiri: Possible Use-After-Free when setting `Document#root=` to an invalid node type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5prr-v3j2-97mh
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5prr-v3j2-97mh
+Title: Nokogiri: Possible Out-of-Bounds Read in `Nokogiri::XML::NodeSet#[]`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5v8h-3h3q-446p
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5v8h-3h3q-446p
+Title: Nokogiri: Possible Use-After-Free when `Nokogiri::XML::Document#encoding=` raises an exception
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-8678-w3jw-xfc2
+Criticality: Low
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-8678-w3jw-xfc2
+Title: Nokogiri: XML::Schema on JRuby allows network requests when NONET is set, bypassing CVE-2020-26247
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-9cv2-cfxc-v4v2
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-9cv2-cfxc-v4v2
+Title: Nokogiri: Null Pointer Dereference calling methods on uninitialized wrapper classes
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-g9g8-vgvw-g3vf
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-g9g8-vgvw-g3vf
+Title: Possible invalid memory read when calling `Nokogiri::XML::Node#initialize_copy_with_args` with incorrect argument type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-p67v-3w7g-wjg7
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-p67v-3w7g-wjg7
+Title: Nokogiri: Possible Use-After-Free when directly using `NokogirI::XML::XPathContext` beyond document lifetime
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-phwj-rprq-35pp
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-phwj-rprq-35pp
+Title: Nokogiri: Possible Use-After-Free when setting an attribute value via `Nokogiri::XML::Attr#value=` or `#content=`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wfpw-mmfh-qq69
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wfpw-mmfh-qq69
+Title: Nokogiri: Possible Use-After-Free in XInclude Processing
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wjv4-x9w8-wm3h
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wjv4-x9w8-wm3h
+Title: Nokogiri: Possible Use-After-Free when setting `Document#root=` to an invalid node type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5prr-v3j2-97mh
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5prr-v3j2-97mh
+Title: Nokogiri: Possible Out-of-Bounds Read in `Nokogiri::XML::NodeSet#[]`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5v8h-3h3q-446p
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5v8h-3h3q-446p
+Title: Nokogiri: Possible Use-After-Free when `Nokogiri::XML::Document#encoding=` raises an exception
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-8678-w3jw-xfc2
+Criticality: Low
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-8678-w3jw-xfc2
+Title: Nokogiri: XML::Schema on JRuby allows network requests when NONET is set, bypassing CVE-2020-26247
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-9cv2-cfxc-v4v2
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-9cv2-cfxc-v4v2
+Title: Nokogiri: Null Pointer Dereference calling methods on uninitialized wrapper classes
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-g9g8-vgvw-g3vf
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-g9g8-vgvw-g3vf
+Title: Possible invalid memory read when calling `Nokogiri::XML::Node#initialize_copy_with_args` with incorrect argument type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-p67v-3w7g-wjg7
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-p67v-3w7g-wjg7
+Title: Nokogiri: Possible Use-After-Free when directly using `NokogirI::XML::XPathContext` beyond document lifetime
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-phwj-rprq-35pp
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-phwj-rprq-35pp
+Title: Nokogiri: Possible Use-After-Free when setting an attribute value via `Nokogiri::XML::Attr#value=` or `#content=`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wfpw-mmfh-qq69
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wfpw-mmfh-qq69
+Title: Nokogiri: Possible Use-After-Free in XInclude Processing
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wjv4-x9w8-wm3h
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wjv4-x9w8-wm3h
+Title: Nokogiri: Possible Use-After-Free when setting `Document#root=` to an invalid node type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5prr-v3j2-97mh
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5prr-v3j2-97mh
+Title: Nokogiri: Possible Out-of-Bounds Read in `Nokogiri::XML::NodeSet#[]`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5v8h-3h3q-446p
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5v8h-3h3q-446p
+Title: Nokogiri: Possible Use-After-Free when `Nokogiri::XML::Document#encoding=` raises an exception
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-8678-w3jw-xfc2
+Criticality: Low
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-8678-w3jw-xfc2
+Title: Nokogiri: XML::Schema on JRuby allows network requests when NONET is set, bypassing CVE-2020-26247
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-9cv2-cfxc-v4v2
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-9cv2-cfxc-v4v2
+Title: Nokogiri: Null Pointer Dereference calling methods on uninitialized wrapper classes
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-g9g8-vgvw-g3vf
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-g9g8-vgvw-g3vf
+Title: Possible invalid memory read when calling `Nokogiri::XML::Node#initialize_copy_with_args` with incorrect argument type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-p67v-3w7g-wjg7
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-p67v-3w7g-wjg7
+Title: Nokogiri: Possible Use-After-Free when directly using `NokogirI::XML::XPathContext` beyond document lifetime
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-phwj-rprq-35pp
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-phwj-rprq-35pp
+Title: Nokogiri: Possible Use-After-Free when setting an attribute value via `Nokogiri::XML::Attr#value=` or `#content=`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wfpw-mmfh-qq69
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wfpw-mmfh-qq69
+Title: Nokogiri: Possible Use-After-Free in XInclude Processing
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wjv4-x9w8-wm3h
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wjv4-x9w8-wm3h
+Title: Nokogiri: Possible Use-After-Free when setting `Document#root=` to an invalid node type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5prr-v3j2-97mh
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5prr-v3j2-97mh
+Title: Nokogiri: Possible Out-of-Bounds Read in `Nokogiri::XML::NodeSet#[]`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5v8h-3h3q-446p
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5v8h-3h3q-446p
+Title: Nokogiri: Possible Use-After-Free when `Nokogiri::XML::Document#encoding=` raises an exception
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-8678-w3jw-xfc2
+Criticality: Low
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-8678-w3jw-xfc2
+Title: Nokogiri: XML::Schema on JRuby allows network requests when NONET is set, bypassing CVE-2020-26247
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-9cv2-cfxc-v4v2
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-9cv2-cfxc-v4v2
+Title: Nokogiri: Null Pointer Dereference calling methods on uninitialized wrapper classes
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-g9g8-vgvw-g3vf
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-g9g8-vgvw-g3vf
+Title: Possible invalid memory read when calling `Nokogiri::XML::Node#initialize_copy_with_args` with incorrect argument type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-p67v-3w7g-wjg7
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-p67v-3w7g-wjg7
+Title: Nokogiri: Possible Use-After-Free when directly using `NokogirI::XML::XPathContext` beyond document lifetime
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-phwj-rprq-35pp
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-phwj-rprq-35pp
+Title: Nokogiri: Possible Use-After-Free when setting an attribute value via `Nokogiri::XML::Attr#value=` or `#content=`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wfpw-mmfh-qq69
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wfpw-mmfh-qq69
+Title: Nokogiri: Possible Use-After-Free in XInclude Processing
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wjv4-x9w8-wm3h
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wjv4-x9w8-wm3h
+Title: Nokogiri: Possible Use-After-Free when setting `Document#root=` to an invalid node type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5prr-v3j2-97mh
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5prr-v3j2-97mh
+Title: Nokogiri: Possible Out-of-Bounds Read in `Nokogiri::XML::NodeSet#[]`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-5v8h-3h3q-446p
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-5v8h-3h3q-446p
+Title: Nokogiri: Possible Use-After-Free when `Nokogiri::XML::Document#encoding=` raises an exception
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-8678-w3jw-xfc2
+Criticality: Low
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-8678-w3jw-xfc2
+Title: Nokogiri: XML::Schema on JRuby allows network requests when NONET is set, bypassing CVE-2020-26247
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-9cv2-cfxc-v4v2
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-9cv2-cfxc-v4v2
+Title: Nokogiri: Null Pointer Dereference calling methods on uninitialized wrapper classes
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-g9g8-vgvw-g3vf
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-g9g8-vgvw-g3vf
+Title: Possible invalid memory read when calling `Nokogiri::XML::Node#initialize_copy_with_args` with incorrect argument type
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-p67v-3w7g-wjg7
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-p67v-3w7g-wjg7
+Title: Nokogiri: Possible Use-After-Free when directly using `NokogirI::XML::XPathContext` beyond document lifetime
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-phwj-rprq-35pp
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-phwj-rprq-35pp
+Title: Nokogiri: Possible Use-After-Free when setting an attribute value via `Nokogiri::XML::Attr#value=` or `#content=`
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wfpw-mmfh-qq69
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wfpw-mmfh-qq69
+Title: Nokogiri: Possible Use-After-Free in XInclude Processing
+Solution: update to '>= 1.19.4'
+
+Name: nokogiri
+Version: 1.19.3
+GHSA: GHSA-wjv4-x9w8-wm3h
+Criticality: Unknown
+URL: https://github.com/sparklemotion/nokogiri/security/advisories/GHSA-wjv4-x9w8-wm3h
+Title: Nokogiri: Possible Use-After-Free when setting `Document#root=` to an invalid node type
+Solution: update to '>= 1.19.4'
+
+Name: puma
+Version: 8.0.1
+CVE: CVE-2026-47736
+GHSA: GHSA-qpgp-93vx-g8v8
+Criticality: High
+URL: https://www.cve.org/CVERecord?id=CVE-2026-47736
+Title: Puma PROXY Protocol v1 Parser Allows Remote Memory Exhaustion
+Solution: update to '~> 7.2.1', '>= 8.0.2'
+
+Name: puma
+Version: 8.0.1
+CVE: CVE-2026-47737
+GHSA: GHSA-2vqw-3mp8-cgmx
+Criticality: High
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-47737
+Title: Puma PROXY Protocol v1 Accepts Repeated Protocol Headers on Persistent Connections
+Solution: update to '~> 7.2.1', '>= 8.0.2'
+
+Name: rails-html-sanitizer
+Version: 1.7.0
+CVE: CVE-2026-73648
+GHSA: GHSA-cj75-f6xr-r4g7
+Criticality: Unknown
+URL: https://github.com/rails/rails-html-sanitizer/security/advisories/GHSA-cj75-f6xr-r4g7
+Title: Possible XSS vulnerability with certain configurations of rails-html-sanitizer
+Solution: update to '>= 1.7.1'
+
+Name: websocket-driver
+Version: 0.8.0
+CVE: CVE-2026-54463
+GHSA: GHSA-ghhp-3qvg-889p
+Criticality: Unknown
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-54463
+Title: Memory exhaustion via abuse of protocol length headers
+Solution: update to '>= 0.8.1'
+
+Name: websocket-driver
+Version: 0.8.0
+CVE: CVE-2026-54464
+GHSA: GHSA-33ph-fccm-39pj
+Criticality: Unknown
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-54464
+Title: Resource limit bypass via message compression
+Solution: update to '>= 0.8.1'
+
+Name: websocket-driver
+Version: 0.8.0
+CVE: CVE-2026-54465
+GHSA: GHSA-8j3g-f24p-4mpw
+Criticality: Unknown
+URL: https://www.cve.org/CVERecord/SearchResults?query=CVE-2026-54465
+Title: Memory exhaustion in HTTP header parser
+Solution: update to '>= 0.8.1'
+
+Name: websocket-driver
+Version: 0.8.0
+CVE: CVE-2026-61666
+GHSA: GHSA-2x63-gw47-w4mm
+Criticality: High
+URL: https://www.cve.org/CVERecord?id=CVE-2026-61666
+Title: Denial of service via malformed Host header
+Solution: update to '>= 0.8.2'
+
+Vulnerabilities found!

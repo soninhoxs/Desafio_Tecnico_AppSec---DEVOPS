@@ -1,0 +1,61 @@
+                    
+                    
+┌──────────────────┐
+│ 10 Code Findings │
+└──────────────────┘
+                                                 
+    backend\.github\dependabot.yml
+    ❯❱ package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown
+          ❰❰ Blocking ❱❱
+          This Dependabot configuration does not set a cooldown period. Newly published packages can be     
+          malicious or unstable. Add a `cooldown` block with `default-days: 7` to each `package-ecosystem`  
+          entry under `updates` to wait 7 days before proposing updates to newly published package versions.
+          Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-                
+          updates/configuration-options-for-the-dependabot.yml-file#cooldown                                
+          Details: https://sg.run/5WvGK                                                                     
+                                                                                                            
+            3┆ - package-ecosystem: bundler
+            4┆   directory: "/"
+            5┆   schedule:
+            6┆     interval: weekly
+            7┆   open-pull-requests-limit: 10
+            ⋮┆----------------------------------------
+            8┆ - package-ecosystem: github-actions
+            9┆   directory: "/"
+           10┆   schedule:
+           11┆     interval: weekly
+           12┆   open-pull-requests-limit: 10
+                                                   
+    backend\.github\workflows\ci.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           14┆ uses: actions/checkout@v6
+            ⋮┆----------------------------------------
+           17┆ uses: ruby/setup-ruby@v1
+            ⋮┆----------------------------------------
+           33┆ uses: actions/checkout@v6
+            ⋮┆----------------------------------------
+           36┆ uses: ruby/setup-ruby@v1
+            ⋮┆----------------------------------------
+           41┆ uses: actions/cache@v4
+            ⋮┆----------------------------------------
+           77┆ uses: actions/checkout@v6
+            ⋮┆----------------------------------------
+           80┆ uses: ruby/setup-ruby@v1
+                                      
+    frontend\Dockerfile
+   ❯❯❱ dockerfile.security.missing-user.missing-user
+          ❰❰ Blocking ❱❱
+          By not specifying a USER, a program in the container may run as 'root'. This is a security hazard.
+          If an attacker can control a process running as root, they may have control over the container.   
+          Ensure that the last USER in a Dockerfile is a USER other than 'root'.                            
+          Details: https://sg.run/Gbvn                                                                      
+                                                                                                            
+           ▶▶┆ Autofix ▶ USER non-root CMD ["npm", "run", "dev", "--", "--host"]
+            9┆ CMD ["npm", "run", "dev", "--", "--host"]
