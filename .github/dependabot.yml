@@ -1,0 +1,27 @@
+# Atualização automática de dependências (PRs semanais).
+# cooldown: espera 7 dias antes de propor uma versão recém-publicada —
+# mitiga pacotes maliciosos publicados e removidos logo depois.
+version: 2
+updates:
+  - package-ecosystem: bundler
+    directory: /backend
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    open-pull-requests-limit: 10
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    open-pull-requests-limit: 10
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: docker
+    directories: [/backend, /frontend]
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+  - package-ecosystem: terraform
+    directory: /deploy/terraform/kind
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }

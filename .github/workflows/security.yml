@@ -1,0 +1,140 @@
+# Segurança automatizada: SAST, SCA, segredos e IaC a cada push/PR e toda
+# segunda-feira (novas CVEs aparecem mesmo sem mudança no código).
+# Resultados em SARIF vão para a aba "Security > Code scanning" do GitHub.
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: SAST — Semgrep (regras próprias + OWASP)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: pip install semgrep==1.182.1
+      - name: Regras próprias (bloqueiam o merge — regressão das vulnerabilidades corrigidas)
+        run: semgrep scan --metrics=off --error --config security/semgrep/coursesphere.yml
+      - name: Rulesets da comunidade (relatório)
+        run: |
+          semgrep scan --metrics=off --sarif --output semgrep.sarif \
+            --config security/semgrep/coursesphere.yml \
+            --config p/ruby --config p/javascript --config p/react --config p/secrets \
+            --config p/dockerfile --config p/docker-compose --config p/github-actions \
+            --config p/owasp-top-ten
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        if: always() && hashFiles('semgrep.sarif') != ''
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  brakeman:
+    name: SAST — Brakeman (Rails)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        with:
+          working-directory: backend
+          bundler-cache: true
+      - name: Brakeman (falha com qualquer aviso)
+        run: bin/brakeman --no-pager --exit-on-warn --exit-on-error -o /dev/stdout -o brakeman.sarif
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        if: always() && hashFiles('backend/brakeman.sarif') != ''
+        with:
+          sarif_file: backend/brakeman.sarif
+          category: brakeman
+
+  dependencies:
+    name: SCA — bundler-audit, npm audit, Trivy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        with:
+          working-directory: backend
+          bundler-cache: true
+      - name: bundler-audit (gems)
+        working-directory: backend
+        run: bin/bundler-audit check --update
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: npm audit (frontend) — falha em high/critical
+        working-directory: frontend
+        run: npm audit --package-lock-only --audit-level=high
+      - run: bash scripts/ci/install-tools.sh trivy
+      - name: Trivy — vulnerabilidades com correção disponível (lockfiles) e segredos
+        run: trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
+      - name: Trivy — SARIF completo
+        if: always()
+        run: trivy fs --scanners vuln,secret,misconfig --ignorefile .trivyignore.yaml --format sarif --output trivy-fs.sarif .
+      - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        if: always() && hashFiles('trivy-fs.sarif') != ''
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+  iac:
+    name: IaC — Trivy config (Dockerfile, Kubernetes, Terraform)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: bash scripts/ci/install-tools.sh trivy
+      - name: Misconfiguração HIGH/CRITICAL bloqueia
+        run: trivy config --severity HIGH,CRITICAL --exit-code 1 --ignorefile .trivyignore.yaml .
+      - name: Relatório completo
+        if: always()
+        run: trivy config --ignorefile .trivyignore.yaml --format table . | tee trivy-config.txt
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: trivy-config
+          path: trivy-config.txt
+
+  secrets:
+    name: Segredos — Gitleaks (histórico completo)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: bash scripts/ci/install-tools.sh gitleaks
+      - run: gitleaks git --redact --config .gitleaks.toml --exit-code 1 .

@@ -1,0 +1,86 @@
+# Teste ponta a ponta do caminho Kubernetes + GitOps, num runner limpo:
+# Terraform cria o cluster kind -> ArgoCD sincroniza plataforma e aplicação a
+# partir DESTE repositório/branch -> smoke test + PoCs pelo ingress (Traefik).
+# Pesado (~20 min), por isso roda sob demanda e uma vez por semana.
+name: K8s E2E (Terraform + ArgoCD)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 10 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  kind-gitops:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      TF_IN_AUTOMATION: "true"
+      # Valores do contexto do GitHub entram por variável de ambiente, nunca
+      # interpolados direto no shell (evita injeção via nome de branch).
+      REPO_URL: ${{ github.server_url }}/${{ github.repository }}.git
+      TARGET_REVISION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.17.0
+          terraform_wrapper: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Nomes *.localhost
+        run: echo "127.0.0.1 coursesphere.localhost argocd.localhost grafana.localhost" | sudo tee -a /etc/hosts
+      - name: Terraform — 1) cluster kind
+        working-directory: deploy/terraform/kind
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false -target=kind_cluster.this \
+            -var "repo_url=$REPO_URL"
+      - name: Imagens desta revisão carregadas no kind (overlay kind-local)
+        run: bash scripts/kind_load_images.sh coursesphere
+      - name: Terraform — 2) namespaces, segredos, ArgoCD e app-of-apps
+        working-directory: deploy/terraform/kind
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var "repo_url=$REPO_URL" \
+            -var "target_revision=$TARGET_REVISION" \
+            -var "app_overlay=kind-local"
+          echo "KUBECONFIG=$(terraform output -raw kubeconfig_path)" >> "$GITHUB_ENV"
+      - name: Aguarda o ArgoCD deixar a aplicação Synced + Healthy
+        run: |
+          for app in root traefik kyverno kube-prometheus-stack coursesphere; do
+            echo "== $app"
+            for i in $(seq 1 120); do
+              kubectl -n argocd get application "$app" >/dev/null 2>&1 && break; sleep 5
+            done
+          done
+          kubectl -n argocd wait application/coursesphere --for=jsonpath='{.status.health.status}'=Healthy --timeout=25m
+          kubectl -n argocd wait application/coursesphere --for=jsonpath='{.status.sync.status}'=Synced --timeout=5m
+      - name: Smoke test e PoCs pelo ingress
+        run: |
+          mkdir -p out
+          curl -fsS http://coursesphere.localhost:8080/api/health | tee out/health.json
+          python security/poc/poc.py --base-url http://coursesphere.localhost:8080/api --expect fixed --out out/poc-k8s.json | tee out/poc-k8s.txt
+      - name: Evidências do cluster
+        if: always()
+        run: |
+          mkdir -p out
+          kubectl -n argocd get applications -o wide > out/argocd-applications.txt 2>&1 || true
+          kubectl get pods -A -o wide > out/pods.txt 2>&1 || true
+          kubectl -n coursesphere get deploy,sts,svc,ingress,hpa,pdb,networkpolicy > out/coursesphere-recursos.txt 2>&1 || true
+          kubectl get validatingpolicies.policies.kyverno.io > out/kyverno-policies.txt 2>&1 || true
+          kubectl -n coursesphere get events --sort-by=.lastTimestamp > out/eventos.txt 2>&1 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: evidencias-kubernetes
+          path: out/
+      - name: Destroi o cluster
+        if: always()
+        working-directory: deploy/terraform/kind
+        run: terraform destroy -auto-approve -input=false -var "repo_url=$REPO_URL" || true
