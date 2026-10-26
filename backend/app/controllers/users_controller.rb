@@ -6,12 +6,12 @@ class UsersController < ApplicationController
     store: RateLimiting.store, with: -> { render_rate_limited })
 
   def me
-    render json: { 
-      user: { 
-        id: @current_user.id, 
-        email: @current_user.email, 
-        name: @current_user.name 
-      } 
+    render json: {
+      user: {
+        id: @current_user.id,
+        email: @current_user.email,
+        name: @current_user.name
+      }
     }, status: :ok
   end
 
@@ -20,13 +20,13 @@ class UsersController < ApplicationController
     if user.save
       security_event(:signup_success, user_id: user.id)
       token = JsonWebToken.encode(user_id: user.id)
-      render json: { 
+      render json: {
         token: token,
-        user: { 
+        user: {
           id: user.id,
-          email: user.email, 
-          name: user.name 
-        } 
+          email: user.email,
+          name: user.name
+        }
       }, status: :created
     else
       security_event(:signup_failure, fields: user.errors.attribute_names.map(&:to_s))
