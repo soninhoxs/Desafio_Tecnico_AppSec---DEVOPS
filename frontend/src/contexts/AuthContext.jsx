@@ -43,9 +43,15 @@ export function AuthProvider({ children }) {
     setUser(userData);
   }
 
+  // Limpa a sessão local na hora e pede ao backend para revogar o token
+  // (sem isso o JWT continuaria válido até expirar).
   function logout() {
+    const token = localStorage.getItem('token');
     localStorage.removeItem('token');
     setUser(null);
+    if (token) {
+      api.delete('/logout', { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
   }
 
   return (
