@@ -33,7 +33,7 @@ module Observability
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
       request = ActionDispatch::Request.new(env)
       method = request.request_method
-      route = route_label(env)
+      route = route_label(request)
 
       Metrics::HTTP_REQUESTS.increment(labels: { method: method, route: route, status: status.to_s })
       Metrics::HTTP_DURATION.observe(duration, labels: { method: method, route: route })
@@ -64,9 +64,11 @@ module Observability
     end
 
     # Rótulo de baixa cardinalidade: o padrão da rota ("/courses/:id"),
-    # nunca o caminho com IDs reais.
-    def route_label(env)
-      pattern = env["action_dispatch.route_uri_pattern"]
+    # nunca o caminho com IDs reais. O roteador grava a rota casada em
+    # env["action_dispatch.route"]; route_uri_pattern deriva o padrão dela
+    # (e devolve nil quando nenhuma rota casou -> 404 de roteamento).
+    def route_label(request)
+      pattern = request.route_uri_pattern
       pattern ? pattern.delete_suffix("(.:format)") : "unmatched"
     end
 
