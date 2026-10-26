@@ -7,7 +7,7 @@
 # SLOs (janela de 30 dias) — detalhes em docs/observabilidade.md:
 #   SLO-1  Disponibilidade do CRUD de cursos/aulas: 99,5% das requisições sem 5xx
 #   SLO-2  Latência do login: 99% dos POST /login em menos de 500 ms
-#   SLO-3  Latência de leitura do CRUD: 99% dos GET de cursos/aulas em menos de 300 ms
+#   SLO-3  Latência de leitura do CRUD: 99% dos GET de cursos/aulas em menos de 250 ms
 groups:
   - name: coursesphere-sli
     interval: 30s
@@ -48,7 +48,7 @@ groups:
       - record: sli:login_latency_p95:5m
         expr: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",route="/login"}[5m])))
 
-      # ---- SLI-3: leitura do CRUD lenta (> 300 ms) ----
+      # ---- SLI-3: leitura do CRUD lenta (> 250 ms) ----
       - record: sli:crud_read_slow_ratio:rate5m
         expr: |
           1 - (

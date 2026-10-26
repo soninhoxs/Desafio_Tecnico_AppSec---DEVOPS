@@ -49,7 +49,7 @@ spec:
         - record: sli:login_latency_p95:5m
           expr: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",route="/login"}[5m])))
 
-        # ---- SLI-3: leitura do CRUD lenta (> 300 ms) ----
+        # ---- SLI-3: leitura do CRUD lenta (> 250 ms) ----
         - record: sli:crud_read_slow_ratio:rate5m
           expr: |
             1 - (
