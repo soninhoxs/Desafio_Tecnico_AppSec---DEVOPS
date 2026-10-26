@@ -3,7 +3,7 @@ source "https://rubygems.org"
 # Framework (só os componentes usados são carregados em config/application.rb)
 gem "rails", "~> 8.1.4"
 # Banco de dados
-gem "pg", "~> 1.6"
+gem "pg", "~> 1.7"
 # Servidor web
 gem "puma", ">= 8.0.2"
 
