@@ -508,7 +508,7 @@ Toda a configuração do Kubernetes/ArgoCD foi validada sem cluster: **todos os 
 ## 10. Limitações e transparência
 
 - A análise estática, as ferramentas de SAST/SCA/IaC e a validação de toda a infraestrutura foram executadas durante o trabalho (saídas em `docs/evidencias/`).
-- As **evidências dinâmicas** (PoC contra as versões original e corrigida, distribuição do balanceador, métricas por réplica, ZAP, cluster kind + ArgoCD) são geradas pelos workflows `E2E` e `K8s E2E` do GitHub Actions e publicadas como artefatos de cada execução. Também podem ser reproduzidas localmente com os comandos do README.
+- As **evidências dinâmicas** (PoC contra as versões original e corrigida, distribuição do balanceador, métricas por réplica, ZAP, cluster kind + ArgoCD) são geradas pelos workflows `E2E` e `K8s E2E` do GitHub Actions e publicadas como artefatos de cada execução. Os comandos locais, a ordem da suíte e a leitura de uma falha de CI estão em [`docs/VERIFICACAO.md`](VERIFICACAO.md).
 - O DAST (ZAP baseline) é passivo e não autenticado. Testes de carga não foram executados (R7, R9).
 - O PostgreSQL do laboratório é de instância única, de propósito (risco D1 documentado).
 

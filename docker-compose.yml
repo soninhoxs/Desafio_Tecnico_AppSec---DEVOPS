@@ -138,7 +138,8 @@ services:
       frontend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/lb/health"]
+      # A imagem nginx-unprivileged traz curl, não wget.
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/lb/health"]
       interval: 10s
       timeout: 3s
       retries: 3

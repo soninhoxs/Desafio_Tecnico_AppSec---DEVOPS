@@ -52,8 +52,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_26_122000) do
     t.bigint "key_hash", null: false
     t.binary "value", null: false
     t.index ["byte_size"], name: "index_solid_cache_entries_on_byte_size"
-    t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
     t.index ["key_hash", "byte_size"], name: "index_solid_cache_entries_on_key_hash_and_byte_size"
+    t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
   end
 
   create_table "users", force: :cascade do |t|

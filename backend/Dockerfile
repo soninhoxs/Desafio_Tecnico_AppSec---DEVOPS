@@ -11,7 +11,11 @@ ARG RUBY_VERSION=4.0.9
 FROM docker.io/library/ruby:${RUBY_VERSION}-slim AS base
 WORKDIR /rails
 
+# upgrade aplica correções de segurança do Debian publicadas depois da tag
+# ruby:4.0.9-slim. O gate do CD (Trivy HIGH/CRITICAL com correção) lê a imagem
+# final, não o repositório — sem isso o deploy para mesmo com o código limpo.
 RUN apt-get update -qq && \
+    apt-get upgrade -y -o APT::Install-Recommends=false && \
     apt-get install --no-install-recommends -y libpq5 libjemalloc2 libyaml-0-2 && \
     ln -s /usr/lib/$(uname -m)-linux-gnu/libjemalloc.so.2 /usr/local/lib/libjemalloc.so && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives

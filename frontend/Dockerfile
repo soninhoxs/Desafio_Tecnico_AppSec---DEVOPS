@@ -17,11 +17,20 @@ RUN npm run build
 
 # ---------- runtime ----------
 FROM docker.io/nginxinc/nginx-unprivileged:1.31.7-alpine3.24
+
+# A tag da imagem fica congelada, mas os pacotes do Alpine continuam recebendo
+# correção. Sem este upgrade, um CVE HIGH/CRITICAL com fix publicado depois do
+# build da tag reprova o gate do Trivy no CD.
+# A imagem já vem como uid 101; pacotes só instalam como root.
+USER root
+RUN apk upgrade --no-cache && apk add --no-cache curl
+
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/security-headers.conf /etc/nginx/snippets/security-headers.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build --chown=101:101 /app/dist /usr/share/nginx/html
 
-# Imagem nginx-unprivileged já roda como uid 101 e escuta na 8080.
+# curl vem da imagem (wget não). Escuta na 8080, sem privilégio de root.
 USER 101
 EXPOSE 8080
-HEALTHCHECK --interval=15s --timeout=3s --retries=3 CMD ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+HEALTHCHECK --interval=15s --timeout=3s --retries=3 \
+  CMD ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/healthz"]

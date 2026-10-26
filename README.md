@@ -173,6 +173,8 @@ Destruir: `terraform destroy -var repo_url=...`.
 
 Todas as actions são fixadas por **SHA de commit** e as ferramentas baixadas com **SHA-256 verificado**.
 
+O passo a passo para rodar a mesma verificação na máquina (testes Rails, schema, lint, PoC, balanceador e o que cada falha de CI significa) está em [`docs/VERIFICACAO.md`](docs/VERIFICACAO.md).
+
 ---
 
 ## Os 4 pilares
@@ -199,7 +201,7 @@ deploy/
 security/
   poc/poc.py             provas de conceito
   semgrep/               regras próprias
-docs/                    relatório, STRIDE, SLOs, runbooks, evidências
+docs/                    relatório, verificação, STRIDE, SLOs, runbooks, evidências
 scripts/                 bootstrap do .env, demo do LB, validação, CI
 .github/workflows/       CI, segurança, CD, E2E
 ```
