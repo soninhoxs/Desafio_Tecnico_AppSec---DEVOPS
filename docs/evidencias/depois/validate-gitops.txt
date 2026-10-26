@@ -1,0 +1,14 @@
+app-of-apps: 9 Applications
+
+  [OK  ] alloy                        Summary: 7 resources found in 1 file - Valid: 6, Invalid: 0, Errors: 0, Skipped: 1
+  [OK  ] kube-prometheus-stack        Summary: 119 resources found in 1 file - Valid: 109, Invalid: 0, Errors: 0, Skipped: 10
+  [OK  ] kyverno                      Summary: 80 resources found in 1 file - Valid: 58, Invalid: 0, Errors: 0, Skipped: 22
+  [OK  ] loki                         Summary: 9 resources found in 1 file - Valid: 9, Invalid: 0, Errors: 0, Skipped: 0
+  [OK  ] metrics-server               Summary: 9 resources found in 1 file - Valid: 9, Invalid: 0, Errors: 0, Skipped: 0
+  [OK  ] traefik                      Summary: 31 resources found in 1 file - Valid: 6, Invalid: 0, Errors: 0, Skipped: 25
+  [OK  ] coursesphere-observability   Summary: 2 resources found in 1 file - Valid: 2, Invalid: 0, Errors: 0, Skipped: 0
+  [OK  ] kyverno-policies             Summary: 6 resources found in 1 file - Valid: 6, Invalid: 0, Errors: 0, Skipped: 0
+  [OK  ] coursesphere                 Summary: 29 resources found in 1 file - Valid: 29, Invalid: 0, Errors: 0, Skipped: 0
+  [OK  ] overlay kind-local           Summary: 29 resources found in 1 file - Valid: 29, Invalid: 0, Errors: 0, Skipped: 0
+
+Tudo válido.
