@@ -57,7 +57,7 @@ export function CourseDetails() {
         try {
           await api.delete(`/courses/${id}`);
           navigate('/dashboard');
-        } catch (err) {
+        } catch {
           setError('Erro ao excluir curso. Tente novamente.');
         }
       },
@@ -73,7 +73,7 @@ export function CourseDetails() {
         try {
           await api.delete(`/lessons/${lessonId}`);
           setLessons(prev => prev.filter(l => l.id !== lessonId));
-        } catch (err) {
+        } catch {
           setLessonsError('Erro ao excluir aula. Tente novamente.');
         }
       },

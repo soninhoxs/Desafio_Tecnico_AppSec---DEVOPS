@@ -26,7 +26,7 @@ export function LessonForm() {
             video_url: res.data.video_url || ''
           });
         })
-        .catch(err => setError("Erro ao carregar os detalhes da aula."))
+        .catch(() => setError("Erro ao carregar os detalhes da aula."))
         .finally(() => setLoading(false));
     }
   }, [lessonId, isEditing]);
@@ -57,7 +57,7 @@ export function LessonForm() {
           setError("A URL deve conter um domínio válido (ex: youtube.com).");
           return;
         }
-      } catch (err) {
+      } catch {
         setError("Por favor, insira uma URL válida para o vídeo.");
         return;
       }
