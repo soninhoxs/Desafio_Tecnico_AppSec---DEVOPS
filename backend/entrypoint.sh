@@ -1,12 +1,18 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# Passo 1: Remove lixo de execuções anteriores
-rm -f /app/tmp/pids/server.pid
+# Remove PID de execuções anteriores (o container pode ter sido reiniciado).
+rm -f tmp/pids/server.pid
 
-# Passo 2: Garante que o banco está pronto (Cria/Migra/Seeds)
-echo "Preparando banco de dados..."
-bundle exec rails db:prepare
+# Migrações NÃO rodam mais em todo start de container:
+# - com 2+ réplicas, todas tentariam migrar ao mesmo tempo;
+# - db:prepare também roda os seeds quando o banco é criado.
+# Elas rodam num passo único antes do deploy (serviço "migrate" no compose,
+# Job de pre-sync no Kubernetes). RUN_DB_PREPARE=true mantém o comportamento
+# antigo só para desenvolvimento local de uma instância.
+if [ "${RUN_DB_PREPARE:-false}" = "true" ]; then
+  echo "[entrypoint] RUN_DB_PREPARE=true -> bin/rails db:prepare"
+  bin/rails db:prepare
+fi
 
-# Passo 3: Sobe o servidor de fato
 exec "$@"
