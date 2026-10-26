@@ -5,6 +5,18 @@ import api from '../services/api';
 import axios from 'axios';
 import { ConfirmModal } from '../components/ConfirmModal';
 
+// Defesa em profundidade: o backend já só aceita http/https, mas o link só é
+// renderizado como <a href> se o protocolo for seguro (dados antigos/outros clientes).
+function isSafeHttpUrl(value) {
+  if (!value) return false;
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function CourseDetails() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
@@ -258,7 +270,7 @@ export function CourseDetails() {
                   {expandedLesson === lesson.id && (
                     <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--primary-color)' }}>
                       <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Link da Aula:</p>
-                      {lesson.video_url ? (
+                      {isSafeHttpUrl(lesson.video_url) ? (
                         <a href={lesson.video_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-hover)', wordBreak: 'break-all', textDecoration: 'none', fontWeight: '500' }} onClick={(e) => e.stopPropagation()}>
                           {lesson.video_url}
                         </a>

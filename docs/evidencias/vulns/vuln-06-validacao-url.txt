@@ -1,0 +1,15 @@
+# VULN-06 — validação de video_url: regex antiga (URI::DEFAULT_PARSER.make_regexp) x validação nova
+# Gerado com: ruby security/tools/url_validation_check.rb (Ruby 4.0.9)
+
+javascript:alert(document.domain)             antigo=ACEITA novo=rejeita
+JaVaScRiPt:alert(1)                           antigo=ACEITA novo=rejeita
+data:text/html,<script>alert(1)</script>      antigo=ACEITA novo=rejeita
+vbscript:msgbox(1)                            antigo=ACEITA novo=rejeita
+texto qualquer http://exemplo.com             antigo=ACEITA novo=rejeita
+ftp://exemplo.com/video.mp4                   antigo=ACEITA novo=rejeita
+https://usuario:senha@exemplo.com/video       antigo=ACEITA novo=rejeita
+https://localhost/video                       antigo=ACEITA novo=rejeita
+nao-e-url                                     antigo=rejeita novo=rejeita
+https://youtube.com/watch?v=abc123            antigo=ACEITA novo=ACEITA
+https://www.youtube.com                       antigo=ACEITA novo=ACEITA
+HTTPS://WWW.YOUTUBE.COM/x                     antigo=ACEITA novo=ACEITA
