@@ -1,15 +1,18 @@
 require_relative "boot"
 
-# Só os componentes do Rails que a API usa. Antes era "rails/all", que também
-# carregava Active Storage (com rotas públicas de upload em /rails/active_storage
-# e alvo do CVE-2026-66066), Action Mailbox, Action Text, Action Cable,
-# Action Mailer e Active Job — nenhum usado. Menos código carregado = menor
-# superfície de ataque.
+# Só os railties que a API usa. Antes era "rails/all", que também carregava
+# Active Storage (rotas públicas de upload em /rails/active_storage, alvo do
+# CVE-2026-66066), Action Mailbox, Action Text, Action Cable e Action Mailer.
+# O railtie do Active Job continua de fora: não há fila nem worker.
+# A biblioteca entra só porque o Solid Cache traz ExpiryJob < ActiveJob::Base.
+# A limpeza do cache usa thread (padrão da gem); o job nunca é enfileirado.
+# Sem essa constante, o eager load do CI quebra ao carregar a classe.
 require "rails"
 require "active_model/railtie"
 require "active_record/railtie"
 require "action_controller/railtie"
 require "rails/test_unit/railtie"
+require "active_job"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.

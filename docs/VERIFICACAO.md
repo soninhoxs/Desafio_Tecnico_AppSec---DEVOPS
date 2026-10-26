@@ -131,7 +131,7 @@ Status 0 nos dois comandos é o mesmo critério do CD.
 | Job vermelho | Onde olhar | Causa típica |
 |---|---|---|
 | Backend — testes, passo "Migrations geram exatamente o schema" | o `git diff` no log | `schema.rb` foi editado ou uma migration nova não foi dumpada. Rode a seção 3. |
-| Backend — testes, passo dos testes | nome do teste | regressão de autorização, senha ou JWT. O teste cita o ID (VULN-0N). |
+| Backend — testes, passo dos testes | o primeiro `Error` do log | se for `SolidCache::ActiveJob`, o eager load carregou `ExpiryJob` sem a biblioteca `active_job`. Outros erros são regressão de autorização, senha ou JWT (o teste cita o ID VULN-0N). |
 | Frontend — lint e build | ESLint | regra de React ou de segurança no `frontend/src`. |
 | E2E versão corrigida, "Sobe o ambiente" | `docker compose logs` (o workflow imprime as últimas 200 linhas) | healthcheck, migration ou seed. Frontend unhealthy quase sempre é probe com binário que a imagem não tem. API unhealthy: `/health/ready` não fala com o PostgreSQL. |
 | E2E versão corrigida, PoC | a linha `VULNERÁVEL` | a correção regrediu. O ID no PoC aponta o achado no relatório. |
