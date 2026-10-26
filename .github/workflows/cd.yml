@@ -66,7 +66,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/trivy-cache
-          key: trivy-db-${{ runner.os }}-${{ steps.db.outputs.digest }}
+          key: trivy-db-v2-${{ runner.os }}-${{ steps.db.outputs.digest }}
       - name: Aquece o cache a partir do GHCR
         if: success() && steps.trivy-cache.outputs.cache-hit != 'true'
         env:
@@ -76,12 +76,14 @@ jobs:
           trivy fs \
             --download-db-only \
             --scanners vuln \
-            --skip-java-db-update \
             --cache-dir "$TRIVY_CACHE_DIR" \
             --db-repository "ghcr.io/${owner}/coursesphere-trivy-db" \
             --db-repository "mirror.gcr.io/aquasec/trivy-db" \
             --db-repository "ghcr.io/aquasecurity/trivy-db" \
             .
+          # A imagem da API inicializa o índice Java na análise da layer.
+          # Sem ele no cache, --skip-java-db-update mata o gate na primeira vez.
+          trivy fs --download-java-db-only --cache-dir "$TRIVY_CACHE_DIR" .
 
   build:
     name: Imagem ${{ matrix.component }}
@@ -111,7 +113,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/trivy-cache
-          key: trivy-db-${{ runner.os }}-${{ needs.trivy-db.outputs.digest }}
+          key: trivy-db-v2-${{ runner.os }}-${{ needs.trivy-db.outputs.digest }}
       - id: vars
         name: Nome e tag da imagem
         run: |
@@ -149,14 +151,14 @@ jobs:
             --db-repository "ghcr.io/${owner}/coursesphere-trivy-db"
             --db-repository "mirror.gcr.io/aquasec/trivy-db"
             --db-repository "ghcr.io/aquasecurity/trivy-db"
-            --skip-java-db-update
             --severity HIGH,CRITICAL
             --ignore-unfixed
             --exit-code 1
           )
-          # Cache quente = banco já atualizado neste workflow. Não baixa ~130 MiB de novo.
+          # Cache quente já tem o banco de vulnerabilidades e o índice Java.
+          # Pular o Java na primeira vez é erro fatal do Trivy.
           if [ "$TRIVY_DB_FRESH" = "true" ]; then
-            args+=(--skip-db-update)
+            args+=(--skip-db-update --skip-java-db-update)
           fi
           trivy image "${args[@]}" \
             "${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.tag }}"
