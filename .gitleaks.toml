@@ -1,0 +1,9 @@
+# Configuração do Gitleaks (varredura de segredos no código e no histórico Git).
+title = "CourseSphere"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Senhas fictícias usadas como fixtures nos testes automatizados (não são credenciais reais)"
+paths = ['''^backend/test/''']
