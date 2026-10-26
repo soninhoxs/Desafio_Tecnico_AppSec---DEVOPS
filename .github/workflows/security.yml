@@ -95,13 +95,24 @@ jobs:
       - name: npm audit (frontend) — falha em high/critical
         working-directory: frontend
         run: npm audit --package-lock-only --audit-level=high
+      - name: Banco do Trivy já publicado pelo CD (não grava cache novo)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/trivy-cache
+          key: trivy-db-${{ runner.os }}-restore
+          restore-keys: |
+            trivy-db-${{ runner.os }}-
       - run: bash scripts/ci/install-tools.sh trivy
       # backend/vendor = gems instaladas pelo setup-ruby (escanear só os lockfiles do projeto)
       - name: Trivy — vulnerabilidades com correção disponível (lockfiles) e segredos
-        run: trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --skip-dirs backend/vendor --skip-dirs frontend/node_modules .
+        env:
+          TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+        run: trivy fs --cache-dir "$TRIVY_CACHE_DIR" --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --skip-dirs backend/vendor --skip-dirs frontend/node_modules .
       - name: Trivy — SARIF completo
         if: always()
-        run: trivy fs --scanners vuln,secret,misconfig --ignorefile .trivyignore.yaml --skip-dirs backend/vendor --skip-dirs frontend/node_modules --format sarif --output trivy-fs.sarif .
+        env:
+          TRIVY_CACHE_DIR: ${{ runner.temp }}/trivy-cache
+        run: trivy fs --cache-dir "$TRIVY_CACHE_DIR" --scanners vuln,secret,misconfig --ignorefile .trivyignore.yaml --skip-dirs backend/vendor --skip-dirs frontend/node_modules --format sarif --output trivy-fs.sarif .
       - uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         if: always() && hashFiles('trivy-fs.sarif') != ''
         with:

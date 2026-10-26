@@ -3,7 +3,7 @@
 # verificação de SHA-256. Nada de "curl | sh" nem tag mutável: se o arquivo
 # publicado mudar (release comprometido), o checksum falha e o job para.
 #
-#   scripts/ci/install-tools.sh trivy gitleaks kustomize kubeconform
+#   scripts/ci/install-tools.sh trivy oras gitleaks kustomize kubeconform
 set -euo pipefail
 
 DEST="${TOOLS_DIR:-$HOME/.local/bin}"
@@ -26,6 +26,10 @@ for tool in "$@"; do
       install_tgz trivy \
         https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz \
         c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0 trivy ;;
+    oras)
+      install_tgz oras \
+        https://github.com/oras-project/oras/releases/download/v1.3.6/oras_1.3.6_linux_amd64.tar.gz \
+        66fb0ad7206f3f6fa77ed5b552049d364ccf4b50b1684554f731f76302b52ca0 oras ;;
     gitleaks)
       install_tgz gitleaks \
         https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \

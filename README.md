@@ -167,7 +167,7 @@ Destruir: `terraform destroy -var repo_url=...`.
 |---|---|---|
 | `ci.yml` | push/PR | testes Rails + PostgreSQL, RuboCop, ESLint + build, validação de Terraform/K8s/ArgoCD/Prometheus/compose |
 | `security.yml` | push/PR + semanal | Semgrep, Brakeman, bundler-audit, npm audit, Trivy (fs/config), Gitleaks |
-| `cd.yml` | push na `main` | build → **Trivy na imagem (gate)** → SBOM → push GHCR → **assinatura cosign** → commit da nova tag no overlay → **ArgoCD faz o deploy** |
+| `cd.yml` | push na `main` | banco do Trivy no GHCR (cache por digest) → build → **Trivy na imagem (gate)** → SBOM → push GHCR → **assinatura cosign** → commit da nova tag no overlay → **ArgoCD faz o deploy** |
 | `e2e.yml` | push/PR | compose da versão corrigida (balanceamento + PoC + ZAP) e da `v0-original` (PoC deve mostrar as falhas) |
 | `k8s-e2e.yml` | manual + semanal | Terraform cria o kind, ArgoCD sincroniza deste repositório, smoke test + PoC via ingress |
 

@@ -117,6 +117,8 @@ trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 <imagem>
 
 `--ignore-unfixed` só ignora CVE sem correção publicada. HIGH/CRITICAL **com** versão corrigida reprovam o job, mesmo que o `npm audit` e o `bundler-audit` estejam limpos — o CVE está no Alpine ou no Debian da imagem base, não no `package-lock` nem no `Gemfile.lock`.
 
+O banco que o Trivy usa para essa comparação tem cerca de **130 MiB** e é um artefato OCI (`mirror.gcr.io/aquasec/trivy-db:2`). No CD ele não é baixado dentro do gate. O job `Banco de vulnerabilidades (GHCR)` copia o artefato para `ghcr.io/<owner>/coursesphere-trivy-db:2` só quando o digest muda, e o cache do runner usa esse digest como chave. O gate e o SBOM leem o cache (`--skip-db-update`) e não transferem o banco de novo. Imagens da API e do frontend não têm Java, então o índice Java (outro artefato grande) fica de fora (`--skip-java-db-update`). O critério do gate não muda: HIGH/CRITICAL com correção disponível continua bloqueando o push.
+
 Por isso os Dockerfiles atualizam os pacotes do sistema no build (`apk upgrade` no frontend, `apt-get upgrade` na API), mantendo a tag da imagem base fixa. A tag pinada evita um salto silencioso de Nginx ou de Ruby; o upgrade pega o patch de segurança que saiu depois dessa tag.
 
 Isso não cobre gem **padrão** do interpretador. Ruby 4.0.9 inclui `json` 2.18.0 em `/usr/local/lib/ruby/gems/4.0.0/specifications/default/`. O `Gemfile.lock` já trava `json` 2.19.9 (acima do corrigido, `>= 2.19.2`), mas o gemspec default continua na imagem. O gate viu exatamente isto:
@@ -145,10 +147,11 @@ Status 0 nos dois comandos é o mesmo critério do CD.
 | Backend — testes, passo "Migrations geram exatamente o schema" | o `git diff` no log | `schema.rb` foi editado ou uma migration nova não foi dumpada. Rode a seção 3. |
 | Backend — testes, passo dos testes | o primeiro `Error` do log | se for `SolidCache::ActiveJob`, o eager load carregou `ExpiryJob` sem a biblioteca `active_job`. Outros erros são regressão de autorização, senha ou JWT (o teste cita o ID VULN-0N). |
 | Frontend — lint e build | ESLint | regra de React ou de segurança no `frontend/src`. |
-| E2E versão corrigida, "Sobe o ambiente" | `docker compose logs migrate` (o workflow imprime as últimas 200 linhas) | o migrate sai antes do Puma. `NameError` em initializer só aparece em produção. `rm:` no entrypoint é o tmpfs de `/rails/tmp`. Frontend `unhealthy` é probe com binário que a imagem não tem. |
+| E2E versão corrigida, "Sobe o ambiente" | `docker compose logs migrate` (o workflow imprime as últimas 200 linhas) | `service "migrate" didn't complete successfully`. `mkdir: Permission denied` em `tmp/pids` é o tmpfs de `/rails/tmp` como root:755 (o processo é uid 10001). `NameError` em initializer só aparece em produção. Frontend `unhealthy` é probe com binário que a imagem não tem. |
 | E2E versão corrigida, PoC | a linha `VULNERÁVEL` | a correção regrediu. O ID no PoC aponta o achado no relatório. |
 | E2E versão original | um caso `CORRIGIDO` quando o esperado era falha | a tag `v0-original` foi movida, ou o PoC mudou e não distingue mais as duas versões. |
 | CD, gate do Trivy | a tabela HIGH/CRITICAL da imagem, não o `npm audit` | pacote do SO (`apt`/`apk`) ou gem padrão do Ruby que o lockfile não substitui. CVE sem versão corrigida não reprova (`--ignore-unfixed`). |
+| CD, Banco de vulnerabilidades | o `oras copy` e o digest | o mirror público mudou e a publicação no GHCR falhou. Se a cópia já existe, o job segue com ela. A barra de ~130 MiB no **gate** é cache frio (primeiro deploy daquele digest), não a imagem da aplicação. |
 | Security | a ferramenta no nome do step | Semgrep próprio bloqueia; o restante é informativo ou gate, conforme `security.yml`. |
 
 O workflow E2E da versão original e o da versão corrigida são independentes. Um verde e o outro vermelho é informativo: o original provar o achado não conserta o compose da `main`.
