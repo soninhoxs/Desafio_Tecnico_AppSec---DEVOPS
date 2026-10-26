@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
+  // Mesma origem por padrão: o balanceador (ou o proxy do Vite em dev) envia /api para a API.
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 // Adiciona o token ao cabeçalho de todas as requisições, se ele existir

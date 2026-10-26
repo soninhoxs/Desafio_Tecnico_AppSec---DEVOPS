@@ -33,9 +33,6 @@
 # Ignore CI service files.
 /.github
 
-# Ignore Kamal files.
-/config/deploy*.yml
-/.kamal
 
 # Ignore development files
 /.devcontainer
@@ -43,3 +40,9 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Não vão para a imagem de produção
+/test
+/coverage
+/.rubocop.yml
+/.github
