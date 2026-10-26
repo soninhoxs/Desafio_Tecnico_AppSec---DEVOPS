@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
+import { AuthContext } from '../contexts/auth-context';
 import api from '../services/api';
 import { CourseCard } from '../components/CourseCard';
 
@@ -12,7 +12,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   
-  const { logout, user } = useContext(AuthContext);
+  const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -42,13 +42,6 @@ export function Dashboard() {
     (currentPage - 1) * COURSES_PER_PAGE,
     currentPage * COURSES_PER_PAGE
   );
-
-  const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Bom dia';
-    if (hour < 18) return 'Boa tarde';
-    return 'Boa noite';
-  };
 
   if (loading) return (
     <div className="dashboard-container">

@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../contexts/AuthContext';
+import { AuthContext } from '../contexts/auth-context';
 import api from '../services/api';
 import axios from 'axios';
 import { ConfirmModal } from '../components/ConfirmModal';
