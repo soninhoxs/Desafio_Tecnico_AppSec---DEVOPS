@@ -35,9 +35,11 @@ x-api: &api
     args:
       APP_VERSION: ${APP_VERSION:-local}
   read_only: true
+  # O processo é uid 10001. Sem uid/mode o tmpfs nasce root:755 e o
+  # entrypoint não consegue criar tmp/pids (Permission denied, migrate exit 1).
   tmpfs:
-    - /tmp
-    - /rails/tmp
+    - /tmp:uid=10001,gid=10001,mode=1777
+    - /rails/tmp:uid=10001,gid=10001,mode=1777
   cap_drop: [ALL]
   security_opt: ["no-new-privileges:true"]
   pids_limit: 256
@@ -109,7 +111,8 @@ services:
     image: coursesphere-frontend:${APP_VERSION:-local}
     build: ./frontend
     read_only: true
-    tmpfs: [/tmp]
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 128m
@@ -124,7 +127,9 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     read_only: true
-    tmpfs: [/tmp]
+    # Imagem stock (uid 101). 1777 deixa o pid e os temp files em /tmp.
+    tmpfs:
+      - /tmp:mode=1777
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     mem_limit: 128m

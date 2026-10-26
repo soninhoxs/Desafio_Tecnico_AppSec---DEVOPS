@@ -216,6 +216,8 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        # emptyDir nasce root:755. Sem o fsGroup o entrypoint não cria /rails/tmp/pids.
+        fsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       initContainers:

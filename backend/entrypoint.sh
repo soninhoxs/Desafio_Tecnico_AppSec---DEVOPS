@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# /rails/tmp é tmpfs vazio no compose (rootfs read-only). O diretório criado
-# no build fica escondido pelo volume, e `rm -f` de um caminho cujo pai não
-# existe sai com status 1 — com `set -e` o container morre antes do Puma.
+# /rails/tmp é tmpfs vazio (rootfs read-only) e precisa ser gravável pelo
+# uid 10001. O diretório do build fica escondido pelo volume. Sem permissão
+# o mkdir falha, o container sai 1 e o compose não sobe a API.
 mkdir -p tmp/pids tmp/cache tmp/sockets
 rm -f tmp/pids/server.pid
 
