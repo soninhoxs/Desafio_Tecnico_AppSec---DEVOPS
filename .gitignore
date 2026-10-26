@@ -1,0 +1,21 @@
+# Segredos locais
+.env
+.env.*
+!.env.example
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Evidências geradas localmente pelos scripts
+security/poc/out/
+
+# SO/editores
+.DS_Store
+.idea/
+.vscode/
+__pycache__/

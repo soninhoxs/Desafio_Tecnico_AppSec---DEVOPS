@@ -22,6 +22,7 @@ ENV RAILS_ENV=production \
     BUNDLE_WITHOUT="development:test" \
     LD_PRELOAD=/usr/local/lib/libjemalloc.so \
     BOOTSNAP_READONLY=true \
+    BOOTSNAP_CACHE_DIR=/rails/.bootsnap \
     RAILS_LOG_LEVEL=info \
     WEB_CONCURRENCY=1 \
     RAILS_MAX_THREADS=5 \
