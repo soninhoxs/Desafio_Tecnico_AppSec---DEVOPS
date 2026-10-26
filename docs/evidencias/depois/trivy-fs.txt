@@ -1,0 +1,14 @@
+
+Report Summary
+
+┌────────────────────────────┬─────────┬─────────────────┐
+│           Target           │  Type   │ Vulnerabilities │
+├────────────────────────────┼─────────┼─────────────────┤
+│ backend/Gemfile.lock       │ bundler │        0        │
+├────────────────────────────┼─────────┼─────────────────┤
+│ frontend/package-lock.json │   npm   │        0        │
+└────────────────────────────┴─────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
