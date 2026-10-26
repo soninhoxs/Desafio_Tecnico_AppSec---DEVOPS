@@ -1,0 +1,27 @@
+# Prometheus (kube-prometheus-stack) coleta /metrics de cada réplica da API,
+# autenticando com o METRICS_TOKEN do Secret criado pelo Terraform.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: coursesphere-api
+  labels:
+    app.kubernetes.io/name: coursesphere-api
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: coursesphere-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+      authorization:
+        type: Bearer
+        credentials:
+          name: coursesphere-api
+          key: METRICS_TOKEN
+      relabelings:
+        # "instance" = nome do pod (igual ao X-Served-By), mais legível que IP:porta.
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: instance

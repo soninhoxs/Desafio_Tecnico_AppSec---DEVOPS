@@ -1,0 +1,15 @@
+# Variante para testar SEM registry: usa imagens construídas localmente e
+# carregadas nos nós do kind (scripts/kind_load_images.sh).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../kind
+
+images:
+  - name: ghcr.io/CHANGE-ME/coursesphere-api
+    newName: coursesphere-api
+    newTag: local
+  - name: ghcr.io/CHANGE-ME/coursesphere-frontend
+    newName: coursesphere-frontend
+    newTag: local

@@ -1,0 +1,26 @@
+# Política de admissão do Kyverno (CEL). Aplica-se ao namespace coursesphere.
+# Gerado em deploy/policies; ajuste validationActions para [Audit] para só reportar.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: require-readonly-rootfs
+  annotations:
+    policies.kyverno.io/description: "Sistema de arquivos raiz somente leitura: um invasor não consegue gravar binários/backdoors na imagem."
+spec:
+  validationActions: [Deny]
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, jobs]
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: coursesphere
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, has(c.securityContext) && has(c.securityContext.readOnlyRootFilesystem) && c.securityContext.readOnlyRootFilesystem == true) && (!has(object.spec.initContainers) || object.spec.initContainers.all(c, has(c.securityContext) && has(c.securityContext.readOnlyRootFilesystem) && c.securityContext.readOnlyRootFilesystem == true))
+      message: "Defina securityContext.readOnlyRootFilesystem: true (use emptyDir para diretórios graváveis)."

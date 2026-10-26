@@ -1,0 +1,135 @@
+# Entrada HTTP via Traefik (ingress-nginx foi descontinuado pelo projeto
+# Kubernetes em 2026; Traefik é mantido e suporta Ingress + Gateway API).
+#
+#   /            -> frontend
+#   /api/*       -> API (prefixo /api removido), rate limit geral
+#   /api/login   -> API, rate limit de autenticação
+#   /api/signup  -> API, rate limit de autenticação
+#   /api/metrics -> bloqueado (métricas só para o Prometheus, dentro do cluster)
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api-prefix
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  stripPrefix:
+    prefixes: ["/api"]
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: api-ratelimit
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  rateLimit:
+    average: 30
+    burst: 60
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: auth-ratelimit
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  rateLimit:
+    average: 10
+    period: 1m
+    burst: 5
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: deny-external
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  ipAllowList:
+    sourceRange: ["127.0.0.1/32"]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coursesphere-web
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: coursesphere.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: coursesphere-frontend
+                port: { name: http }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coursesphere-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    traefik.ingress.kubernetes.io/router.middlewares: coursesphere-api-ratelimit@kubernetescrd,coursesphere-strip-api-prefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: coursesphere.localhost
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: coursesphere-api
+                port: { name: http }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coursesphere-api-auth
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    traefik.ingress.kubernetes.io/router.middlewares: coursesphere-auth-ratelimit@kubernetescrd,coursesphere-strip-api-prefix@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: coursesphere.localhost
+      http:
+        paths:
+          - path: /api/login
+            pathType: Exact
+            backend:
+              service:
+                name: coursesphere-api
+                port: { name: http }
+          - path: /api/signup
+            pathType: Exact
+            backend:
+              service:
+                name: coursesphere-api
+                port: { name: http }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coursesphere-api-metrics-block
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    traefik.ingress.kubernetes.io/router.middlewares: coursesphere-deny-external@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: coursesphere.localhost
+      http:
+        paths:
+          - path: /api/metrics
+            pathType: Exact
+            backend:
+              service:
+                name: coursesphere-api
+                port: { name: http }

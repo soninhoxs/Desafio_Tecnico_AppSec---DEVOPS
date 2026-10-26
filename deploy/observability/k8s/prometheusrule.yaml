@@ -1,0 +1,154 @@
+# ARQUIVO GERADO por scripts/gen_prometheus_rule.py — não edite à mão.
+# Fonte: deploy/observability/prometheus/rules/coursesphere.rules.yml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: coursesphere
+  labels:
+    app.kubernetes.io/part-of: coursesphere
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  groups:
+    - name: coursesphere-sli
+      interval: 30s
+      rules:
+        # ---- SLI-1: taxa de erro (5xx) do CRUD ----
+        - record: sli:crud_requests:rate5m
+          expr: sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[5m]))
+        - record: sli:crud_errors:rate5m
+          expr: sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[5m]))
+        - record: sli:crud_error_ratio:rate5m
+          expr: sli:crud_errors:rate5m / clamp_min(sli:crud_requests:rate5m, 1e-9)
+        - record: sli:crud_error_ratio:rate30m
+          expr: |
+            sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[30m]))
+            / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[30m])), 1e-9)
+        - record: sli:crud_error_ratio:rate1h
+          expr: |
+            sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[1h]))
+            / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[1h])), 1e-9)
+        - record: sli:crud_error_ratio:rate6h
+          expr: |
+            sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[6h]))
+            / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[6h])), 1e-9)
+
+        # ---- SLI-2: login lento (> 500 ms) ----
+        - record: sli:login_slow_ratio:rate5m
+          expr: |
+            1 - (
+              sum(rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",route="/login",le="0.5"}[5m]))
+              / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="coursesphere-api",route="/login"}[5m])), 1e-9)
+            )
+        - record: sli:login_slow_ratio:rate1h
+          expr: |
+            1 - (
+              sum(rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",route="/login",le="0.5"}[1h]))
+              / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="coursesphere-api",route="/login"}[1h])), 1e-9)
+            )
+        - record: sli:login_latency_p95:5m
+          expr: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",route="/login"}[5m])))
+
+        # ---- SLI-3: leitura do CRUD lenta (> 300 ms) ----
+        - record: sli:crud_read_slow_ratio:rate5m
+          expr: |
+            1 - (
+              sum(rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*",le="0.25"}[5m]))
+              / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*"}[5m])), 1e-9)
+            )
+        - record: sli:crud_read_latency_p95:5m
+          expr: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*"}[5m])))
+
+    - name: coursesphere-slo-alerts
+      rules:
+        # Burn rate multi-janela (Google SRE Workbook). Orçamento de erro do
+        # SLO-1 = 0,5%. 14,4x consome 2% do orçamento mensal em 1 hora.
+        - alert: CrudErrorBudgetFastBurn
+          expr: sli:crud_error_ratio:rate1h > (14.4 * 0.005) and sli:crud_error_ratio:rate5m > (14.4 * 0.005)
+          for: 2m
+          labels:
+            severity: critical
+            slo: crud-availability
+          annotations:
+            summary: "CRUD de cursos/aulas queimando o orçamento de erro 14x mais rápido que o aceitável"
+            description: "Taxa de 5xx na última hora: {{ $value | humanizePercentage }} (SLO 99,5%)."
+            runbook: docs/runbooks/api-erros-5xx.md
+        - alert: CrudErrorBudgetSlowBurn
+          expr: sli:crud_error_ratio:rate6h > (6 * 0.005) and sli:crud_error_ratio:rate30m > (6 * 0.005)
+          for: 15m
+          labels:
+            severity: warning
+            slo: crud-availability
+          annotations:
+            summary: "CRUD de cursos/aulas consumindo o orçamento de erro 6x mais rápido que o aceitável"
+            description: "Taxa de 5xx nas últimas 6h: {{ $value | humanizePercentage }}."
+            runbook: docs/runbooks/api-erros-5xx.md
+        - alert: LoginLatencySLOBurn
+          expr: sli:login_slow_ratio:rate1h > (14.4 * 0.01) and sli:login_slow_ratio:rate5m > (14.4 * 0.01)
+          for: 5m
+          labels:
+            severity: warning
+            slo: login-latency
+          annotations:
+            summary: "Login lento: muitas requisições acima de 500 ms"
+            description: "Fração de logins acima de 500 ms na última hora: {{ $value | humanizePercentage }}."
+            runbook: docs/runbooks/latencia-alta.md
+
+    - name: coursesphere-availability
+      rules:
+        - alert: ApiInstanceDown
+          expr: up{job="coursesphere-api"} == 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Réplica {{ $labels.instance }} da API fora do ar"
+            description: "O balanceador segue atendendo com as demais réplicas, mas a redundância foi perdida."
+            runbook: docs/runbooks/api-fora-do-ar.md
+        - alert: ApiAllInstancesDown
+          expr: sum(up{job="coursesphere-api"}) == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Nenhuma réplica da API respondendo"
+            description: "Indisponibilidade total do CourseSphere."
+            runbook: docs/runbooks/api-fora-do-ar.md
+        - alert: DatabaseConnectionPoolSaturated
+          expr: max by (instance) (coursesphere_db_pool_connections{state="waiting"}) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Threads esperando conexão com o banco em {{ $labels.instance }}"
+            description: "Pool de conexões esgotado há 5 min: aumente o pool ou investigue queries lentas."
+            runbook: docs/runbooks/latencia-alta.md
+
+    - name: coursesphere-security
+      rules:
+        - alert: PossibleBruteForce
+          expr: sum(rate(coursesphere_security_events_total{event="login_failure"}[5m])) * 60 > 30
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Muitas falhas de login (possível força bruta / credential stuffing)"
+            description: "{{ $value | humanize }} falhas de login por minuto nos últimos 5 min."
+            runbook: docs/runbooks/forca-bruta.md
+        - alert: AccountsBeingLocked
+          expr: sum(increase(coursesphere_security_events_total{event="account_locked"}[15m])) > 5
+          labels:
+            severity: warning
+          annotations:
+            summary: "Várias contas bloqueadas por tentativas de login em 15 min"
+            description: "{{ $value | humanize }} contas bloqueadas: ataque distribuído contra várias contas?"
+            runbook: docs/runbooks/forca-bruta.md
+        - alert: AccessDeniedSpike
+          expr: sum(rate(coursesphere_security_events_total{event="access_denied"}[5m])) * 60 > 20
+          for: 5m
+          labels:
+            severity: info
+          annotations:
+            summary: "Pico de acessos negados (403): possível tentativa de IDOR/escalada"
+            description: "{{ $value | humanize }} acessos negados por minuto."
+            runbook: docs/runbooks/forca-bruta.md

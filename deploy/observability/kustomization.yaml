@@ -1,0 +1,22 @@
+# Recursos de observabilidade do CourseSphere no Kubernetes (namespace
+# monitoring do kube-prometheus-stack). Usa os MESMOS arquivos do compose:
+# o dashboard do Grafana e as regras/alertas do Prometheus.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+resources:
+  - k8s/prometheusrule.yaml
+
+configMapGenerator:
+  # O sidecar do Grafana carrega todo ConfigMap com o label grafana_dashboard=1.
+  - name: coursesphere-dashboard
+    files:
+      - grafana/dashboards/coursesphere-overview.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: CourseSphere

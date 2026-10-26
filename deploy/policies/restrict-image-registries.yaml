@@ -1,0 +1,26 @@
+# Política de admissão do Kyverno (CEL). Aplica-se ao namespace coursesphere.
+# Gerado em deploy/policies; ajuste validationActions para [Audit] para só reportar.
+apiVersion: policies.kyverno.io/v1
+kind: ValidatingPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/description: "Só imagens dos registries confiáveis do projeto (cadeia de suprimentos)."
+spec:
+  validationActions: [Deny]
+  autogen:
+    podControllers:
+      controllers: [deployments, statefulsets, jobs]
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: coursesphere
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c, c.image.startsWith('ghcr.io/') || c.image.startsWith('docker.io/library/postgres:') || c.image.startsWith('coursesphere-')) && (!has(object.spec.initContainers) || object.spec.initContainers.all(c, c.image.startsWith('ghcr.io/') || c.image.startsWith('docker.io/library/postgres:') || c.image.startsWith('coursesphere-')))
+      message: "Imagem de registry não autorizado. Permitidos: ghcr.io/*, docker.io/library/postgres e imagens locais coursesphere-*."
