@@ -1,0 +1,289 @@
+{
+  "target": "http://localhost:3000",
+  "results": [
+    {
+      "id": "VULN-01",
+      "title": "Aula em rascunho visível para outro usuário",
+      "verdict": "VULNERÁVEL",
+      "evidence": "outro usuário: GET /courses/5/lessons -> 200 (rascunho na lista: True); GET /lessons/14 -> 200"
+    },
+    {
+      "id": "CONTROLE",
+      "title": "Editar/excluir curso de outro criador (IDOR)",
+      "verdict": "PROTEGIDO",
+      "evidence": "PUT -> 403, DELETE -> 403 (esperado 403)"
+    },
+    {
+      "id": "VULN-02",
+      "title": "JWT continua válido após logout",
+      "verdict": "VULNERÁVEL",
+      "evidence": "DELETE /logout -> 200; GET /me com o mesmo token -> 200"
+    },
+    {
+      "id": "VULN-04",
+      "title": "Credenciais padrão do seed (tech@coursesphere.com / password123)",
+      "verdict": "VULNERÁVEL",
+      "evidence": "POST /login -> 200"
+    },
+    {
+      "id": "VULN-05",
+      "title": "Modo development exposto (stack trace / /rails/info)",
+      "verdict": "VULNERÁVEL",
+      "evidence": "GET /rails/info/properties -> 406 (aberto: False); GET /lessons/999999999 -> 404 (stack trace na resposta: True)"
+    },
+    {
+      "id": "VULN-06",
+      "title": "video_url aceita javascript: (XSS armazenado latente)",
+      "verdict": "VULNERÁVEL",
+      "evidence": "POST lesson com video_url=javascript:... -> 201"
+    },
+    {
+      "id": "VULN-08",
+      "title": "Enumeração de usuários pelo tempo do login",
+      "verdict": "VULNERÁVEL",
+      "evidence": "mediana e-mail existente = 187 ms; e-mail inexistente = 4 ms"
+    },
+    {
+      "id": "VULN-09",
+      "title": "Senha fraca aceita no cadastro ('123456')",
+      "verdict": "VULNERÁVEL",
+      "evidence": "POST /signup com senha 123456 -> 201"
+    },
+    {
+      "id": "VULN-03",
+      "title": "Sem proteção contra força bruta no login",
+      "verdict": "VULNERÁVEL",
+      "evidence": "12 senhas erradas -> [401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401]; senha correta em seguida -> 200 (429 = rate limit; 401 = conta bloqueada)"
+    }
+  ],
+  "requests": [
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 239.4,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":3,\"email\":\"criador-cb8c1d6a@poc.example.com\",\"name\":\"PoC criador\"}}"
+    },
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 193.2,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":4,\"email\":\"aluno-84528b93@poc.example.com\",\"name\":\"PoC aluno\"}}"
+    },
+    {
+      "request": "POST /courses",
+      "status": 201,
+      "elapsed_ms": 17.4,
+      "response_excerpt": "{\"id\":5,\"created_at\":\"2026-10-28T14:41:16.885Z\",\"creator_id\":3,\"description\":\"criado pelo PoC\",\"end_date\":\"2026-11-27\",\"name\":\"Curso PoC bc5f66\",\"start_date\":\"2026-10-28\",\"updated_at\":\"2026-10-28T14:41:16.885Z\"}"
+    },
+    {
+      "request": "POST /courses/5/lessons",
+      "status": 201,
+      "elapsed_ms": 13.2,
+      "response_excerpt": "{\"id\":14,\"course_id\":5,\"created_at\":\"2026-10-28T14:41:16.898Z\",\"status\":\"draft\",\"title\":\"Rascunho secreto do PoC\",\"updated_at\":\"2026-10-28T14:41:16.898Z\",\"video_url\":null}"
+    },
+    {
+      "request": "GET /courses/5/lessons",
+      "status": 200,
+      "elapsed_ms": 4.9,
+      "response_excerpt": "[{\"id\":14,\"course_id\":5,\"created_at\":\"2026-10-28T14:41:16.898Z\",\"status\":\"draft\",\"title\":\"Rascunho secreto do PoC\",\"updated_at\":\"2026-10-28T14:41:16.898Z\",\"video_url\":null}]"
+    },
+    {
+      "request": "GET /lessons/14",
+      "status": 200,
+      "elapsed_ms": 3.5,
+      "response_excerpt": "{\"id\":14,\"course_id\":5,\"created_at\":\"2026-10-28T14:41:16.898Z\",\"status\":\"draft\",\"title\":\"Rascunho secreto do PoC\",\"updated_at\":\"2026-10-28T14:41:16.898Z\",\"video_url\":null}"
+    },
+    {
+      "request": "POST /courses",
+      "status": 201,
+      "elapsed_ms": 6.1,
+      "response_excerpt": "{\"id\":6,\"created_at\":\"2026-10-28T14:41:16.914Z\",\"creator_id\":3,\"description\":\"criado pelo PoC\",\"end_date\":\"2026-11-27\",\"name\":\"Curso PoC 804f0d\",\"start_date\":\"2026-10-28\",\"updated_at\":\"2026-10-28T14:41:16.914Z\"}"
+    },
+    {
+      "request": "PUT /courses/6",
+      "status": 403,
+      "elapsed_ms": 4.1,
+      "response_excerpt": "{\"error\":\"Ação não permitida para este utilizador\"}"
+    },
+    {
+      "request": "DELETE /courses/6",
+      "status": 403,
+      "elapsed_ms": 4.2,
+      "response_excerpt": "{\"error\":\"Ação não permitida para este utilizador\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 200,
+      "elapsed_ms": 188.2,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":3,\"email\":\"criador-cb8c1d6a@poc.example.com\",\"name\":\"PoC criador\"}}"
+    },
+    {
+      "request": "DELETE /logout",
+      "status": 200,
+      "elapsed_ms": 4.6,
+      "response_excerpt": "{\"message\":\"Logged out successfully\"}"
+    },
+    {
+      "request": "GET /me",
+      "status": 200,
+      "elapsed_ms": 3.5,
+      "response_excerpt": "{\"user\":{\"id\":3,\"email\":\"criador-cb8c1d6a@poc.example.com\",\"name\":\"PoC criador\"}}"
+    },
+    {
+      "request": "POST /login",
+      "status": 200,
+      "elapsed_ms": 187.7,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":1,\"email\":\"tech@coursesphere.com\",\"name\":\"Instrutor Tech\"}}"
+    },
+    {
+      "request": "GET /rails/info/properties",
+      "status": 406,
+      "elapsed_ms": 19.8,
+      "response_excerpt": "{\"status\":406,\"error\":\"Not Acceptable\",\"exception\":\"#\\u003cActionController::UnknownFormat:\\\"Rails::InfoController#properties is missing a template for this request format and variant.\\\\n\\\\nrequest.formats: [\\\\\\\"application/json\\\\\\\"]\\\\nrequest.variant: []\\\"\\u003e\",\"traces\":{\"Application Trace\":[],\"F"
+    },
+    {
+      "request": "GET /lessons/999999999",
+      "status": 404,
+      "elapsed_ms": 5.6,
+      "response_excerpt": "{\"status\":404,\"error\":\"Not Found\",\"exception\":\"#\\u003cActiveRecord::RecordNotFound: Couldn't find Lesson with 'id'=\\\"999999999\\\"\\u003e\",\"traces\":{\"Application Trace\":[{\"exception_object_id\":11120,\"id\":1,\"trace\":{},\"filtered_trace\":\"app/controllers/lessons_controller.rb:52:in 'LessonsController#set_l"
+    },
+    {
+      "request": "POST /courses",
+      "status": 201,
+      "elapsed_ms": 7.5,
+      "response_excerpt": "{\"id\":7,\"created_at\":\"2026-10-28T14:41:17.339Z\",\"creator_id\":3,\"description\":\"criado pelo PoC\",\"end_date\":\"2026-11-27\",\"name\":\"Curso PoC 29613b\",\"start_date\":\"2026-10-28\",\"updated_at\":\"2026-10-28T14:41:17.339Z\"}"
+    },
+    {
+      "request": "POST /courses/7/lessons",
+      "status": 201,
+      "elapsed_ms": 7.1,
+      "response_excerpt": "{\"id\":15,\"course_id\":7,\"created_at\":\"2026-10-28T14:41:17.347Z\",\"status\":\"published\",\"title\":\"Aula XSS PoC\",\"updated_at\":\"2026-10-28T14:41:17.347Z\",\"video_url\":\"javascript:alert(document.domain)\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 185.7,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 4.5,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 186.9,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 4.2,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 186.8,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 4.2,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 191.7,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":5,\"email\":\"fraca-4a301661@poc.example.com\",\"name\":\"Fraca\"}}"
+    },
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 191.5,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":6,\"email\":\"vitima-ed26d27f@poc.example.com\",\"name\":\"PoC vitima\"}}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 191.2,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 188.3,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 188.4,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 188.5,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 192.3,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 189.5,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 189.4,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 187.9,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 186.7,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 191.7,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 200.5,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 203.4,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 200,
+      "elapsed_ms": 188.1,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":6,\"email\":\"vitima-ed26d27f@poc.example.com\",\"name\":\"PoC vitima\"}}"
+    }
+  ]
+}

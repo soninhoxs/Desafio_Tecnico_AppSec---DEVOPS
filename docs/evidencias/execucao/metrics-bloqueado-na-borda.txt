@@ -1,0 +1,1 @@
+GET http://localhost:8080/api/metrics -> HTTP 404 (métricas só na rede interna)

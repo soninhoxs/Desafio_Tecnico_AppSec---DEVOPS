@@ -1,0 +1,289 @@
+{
+  "target": "http://localhost:8080/api",
+  "results": [
+    {
+      "id": "VULN-01",
+      "title": "Aula em rascunho visível para outro usuário",
+      "verdict": "CORRIGIDO",
+      "evidence": "outro usuário: GET /courses/5/lessons -> 200 (rascunho na lista: False); GET /lessons/14 -> 404"
+    },
+    {
+      "id": "CONTROLE",
+      "title": "Editar/excluir curso de outro criador (IDOR)",
+      "verdict": "PROTEGIDO",
+      "evidence": "PUT -> 403, DELETE -> 403 (esperado 403)"
+    },
+    {
+      "id": "VULN-02",
+      "title": "JWT continua válido após logout",
+      "verdict": "CORRIGIDO",
+      "evidence": "DELETE /logout -> 200; GET /me com o mesmo token -> 401"
+    },
+    {
+      "id": "VULN-04",
+      "title": "Credenciais padrão do seed (tech@coursesphere.com / password123)",
+      "verdict": "CORRIGIDO",
+      "evidence": "POST /login -> 401"
+    },
+    {
+      "id": "VULN-05",
+      "title": "Modo development exposto (stack trace / /rails/info)",
+      "verdict": "CORRIGIDO",
+      "evidence": "GET /rails/info/properties -> 404 (aberto: False); GET /lessons/999999999 -> 404 (stack trace na resposta: False)"
+    },
+    {
+      "id": "VULN-06",
+      "title": "video_url aceita javascript: (XSS armazenado latente)",
+      "verdict": "CORRIGIDO",
+      "evidence": "POST lesson com video_url=javascript:... -> 422"
+    },
+    {
+      "id": "VULN-08",
+      "title": "Enumeração de usuários pelo tempo do login",
+      "verdict": "CORRIGIDO",
+      "evidence": "mediana e-mail existente = 246 ms; e-mail inexistente = 256 ms"
+    },
+    {
+      "id": "VULN-09",
+      "title": "Senha fraca aceita no cadastro ('123456')",
+      "verdict": "CORRIGIDO",
+      "evidence": "POST /signup com senha 123456 -> 422"
+    },
+    {
+      "id": "VULN-03",
+      "title": "Sem proteção contra força bruta no login",
+      "verdict": "CORRIGIDO",
+      "evidence": "12 senhas erradas -> [429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429]; senha correta em seguida -> 429 (429 = rate limit; 401 = conta bloqueada)"
+    }
+  ],
+  "requests": [
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 416.7,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":3,\"email\":\"criador-8cd336e1@poc.example.com\",\"name\":\"PoC criador\"}}"
+    },
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 402.2,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":4,\"email\":\"aluno-d711fef4@poc.example.com\",\"name\":\"PoC aluno\"}}"
+    },
+    {
+      "request": "POST /courses",
+      "status": 201,
+      "elapsed_ms": 149.3,
+      "response_excerpt": "{\"id\":5,\"created_at\":\"2026-10-28T14:41:55.349Z\",\"creator_id\":3,\"description\":\"criado pelo PoC\",\"end_date\":\"2026-11-27\",\"name\":\"Curso PoC c5007f\",\"start_date\":\"2026-10-28\",\"updated_at\":\"2026-10-28T14:41:55.349Z\"}"
+    },
+    {
+      "request": "POST /courses/5/lessons",
+      "status": 201,
+      "elapsed_ms": 190.8,
+      "response_excerpt": "{\"id\":14,\"course_id\":5,\"created_at\":\"2026-10-28T14:41:55.548Z\",\"status\":\"draft\",\"title\":\"Rascunho secreto do PoC\",\"updated_at\":\"2026-10-28T14:41:55.548Z\",\"video_url\":null}"
+    },
+    {
+      "request": "GET /courses/5/lessons",
+      "status": 200,
+      "elapsed_ms": 97.5,
+      "response_excerpt": "[]"
+    },
+    {
+      "request": "GET /lessons/14",
+      "status": 404,
+      "elapsed_ms": 40.9,
+      "response_excerpt": "{\"error\":\"Lesson not found\"}"
+    },
+    {
+      "request": "POST /courses",
+      "status": 201,
+      "elapsed_ms": 31.1,
+      "response_excerpt": "{\"id\":6,\"created_at\":\"2026-10-28T14:41:55.736Z\",\"creator_id\":3,\"description\":\"criado pelo PoC\",\"end_date\":\"2026-11-27\",\"name\":\"Curso PoC ff9db1\",\"start_date\":\"2026-10-28\",\"updated_at\":\"2026-10-28T14:41:55.736Z\"}"
+    },
+    {
+      "request": "PUT /courses/6",
+      "status": 403,
+      "elapsed_ms": 22.3,
+      "response_excerpt": "{\"error\":\"Ação não permitida para este utilizador\"}"
+    },
+    {
+      "request": "DELETE /courses/6",
+      "status": 403,
+      "elapsed_ms": 16.1,
+      "response_excerpt": "{\"error\":\"Ação não permitida para este utilizador\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 200,
+      "elapsed_ms": 248.5,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":3,\"email\":\"criador-8cd336e1@poc.example.com\",\"name\":\"PoC criador\"}}"
+    },
+    {
+      "request": "DELETE /logout",
+      "status": 200,
+      "elapsed_ms": 37.6,
+      "response_excerpt": "{\"message\":\"Logged out successfully\"}"
+    },
+    {
+      "request": "GET /me",
+      "status": 401,
+      "elapsed_ms": 15.0,
+      "response_excerpt": "{\"error\":\"Unauthorized\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 256.0,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "GET /rails/info/properties",
+      "status": 404,
+      "elapsed_ms": 8.7,
+      "response_excerpt": "{\"status\":404,\"error\":\"Not Found\"}"
+    },
+    {
+      "request": "GET /lessons/999999999",
+      "status": 404,
+      "elapsed_ms": 16.2,
+      "response_excerpt": "{\"error\":\"Lesson not found\"}"
+    },
+    {
+      "request": "POST /courses",
+      "status": 201,
+      "elapsed_ms": 58.6,
+      "response_excerpt": "{\"id\":7,\"created_at\":\"2026-10-28T14:41:56.407Z\",\"creator_id\":3,\"description\":\"criado pelo PoC\",\"end_date\":\"2026-11-27\",\"name\":\"Curso PoC d47668\",\"start_date\":\"2026-10-28\",\"updated_at\":\"2026-10-28T14:41:56.407Z\"}"
+    },
+    {
+      "request": "POST /courses/7/lessons",
+      "status": 422,
+      "elapsed_ms": 36.7,
+      "response_excerpt": "{\"errors\":[\"Video url deve ser uma URL http(s) válida\"]}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 257.7,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 255.5,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 244.4,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 238.3,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 246.5,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /login",
+      "status": 401,
+      "elapsed_ms": 297.3,
+      "response_excerpt": "{\"error\":\"Invalid email or password\"}"
+    },
+    {
+      "request": "POST /signup",
+      "status": 422,
+      "elapsed_ms": 274.9,
+      "response_excerpt": "{\"errors\":[\"Password is too short (minimum is 12 characters)\"]}"
+    },
+    {
+      "request": "POST /signup",
+      "status": 201,
+      "elapsed_ms": 268.8,
+      "response_excerpt": "{\"token\":\"<jwt-removido>\",\"user\":{\"id\":5,\"email\":\"vitima-867d6258@poc.example.com\",\"name\":\"PoC vitima\"}}"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 1.1,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.8,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.8,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.8,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.8,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.8,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    },
+    {
+      "request": "POST /login",
+      "status": 429,
+      "elapsed_ms": 0.9,
+      "response_excerpt": "<html>\r\n<head><title>429 Too Many Requests</title></head>\r\n<body>\r\n<center><h1>429 Too Many Requests</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+HTTP/1.1 200 OK
+Server: nginx
+Date: Wed, 28 Oct 2026 14:44:31 GMT
+Content-Type: text/html
+Content-Length: 465
+Connection: keep-alive
+Last-Modified: Wed, 28 Oct 2026 14:40:32 GMT
+ETag: "6ae20960-1d1"
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://randomuser.me; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+Cross-Origin-Opener-Policy: same-origin
+Cache-Control: no-cache
+Accept-Ranges: bytes
+

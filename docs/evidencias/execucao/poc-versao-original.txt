@@ -1,0 +1,32 @@
+Alvo: http://localhost:3000
+
+[VULNERÁVEL  ] VULN-01   Aula em rascunho visível para outro usuário
+               outro usuário: GET /courses/5/lessons -> 200 (rascunho na lista: True); GET /lessons/14 -> 200
+
+[PROTEGIDO   ] CONTROLE  Editar/excluir curso de outro criador (IDOR)
+               PUT -> 403, DELETE -> 403 (esperado 403)
+
+[VULNERÁVEL  ] VULN-02   JWT continua válido após logout
+               DELETE /logout -> 200; GET /me com o mesmo token -> 200
+
+[VULNERÁVEL  ] VULN-04   Credenciais padrão do seed (tech@coursesphere.com / password123)
+               POST /login -> 200
+
+[VULNERÁVEL  ] VULN-05   Modo development exposto (stack trace / /rails/info)
+               GET /rails/info/properties -> 406 (aberto: False); GET /lessons/999999999 -> 404 (stack trace na resposta: True)
+
+[VULNERÁVEL  ] VULN-06   video_url aceita javascript: (XSS armazenado latente)
+               POST lesson com video_url=javascript:... -> 201
+
+[VULNERÁVEL  ] VULN-08   Enumeração de usuários pelo tempo do login
+               mediana e-mail existente = 187 ms; e-mail inexistente = 4 ms
+
+[VULNERÁVEL  ] VULN-09   Senha fraca aceita no cadastro ('123456')
+               POST /signup com senha 123456 -> 201
+
+[VULNERÁVEL  ] VULN-03   Sem proteção contra força bruta no login
+               12 senhas erradas -> [401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401, 401]; senha correta em seguida -> 200 (429 = rate limit; 401 = conta bloqueada)
+
+Resultados gravados em out/poc-original.json
+
+Todos os resultados conferem com o esperado: VULNERÁVEL.
