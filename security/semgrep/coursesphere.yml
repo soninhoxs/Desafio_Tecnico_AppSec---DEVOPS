@@ -31,6 +31,10 @@ rules:
       URI::DEFAULT_PARSER.make_regexp / URI.regexp gera regex SEM âncoras e
       aceita qualquer esquema (javascript:, data:). Valide com URI.parse +
       allowlist de esquema (VULN-06).
+    # Só o código da API. security/tools/url_validation_check.rb usa a regex
+    # antiga DE PROPÓSITO, para gerar a evidência comparativa da VULN-06.
+    paths:
+      include: ["backend/**"]
     pattern-either:
       - pattern: URI::DEFAULT_PARSER.make_regexp
       - pattern: URI::DEFAULT_PARSER.make_regexp(...)
