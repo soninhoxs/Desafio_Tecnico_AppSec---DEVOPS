@@ -41,7 +41,7 @@ ZAP by [Checkmarx](https://checkmarx.com/).
 | Cross-Origin-Embedder-Policy Header Missing or Invalid | Low | 3 |
 | Cross-Origin-Resource-Policy Header Missing or Invalid | Low | Systemic |
 | Information Disclosure - Suspicious Comments | Informational | 1 |
-| Modern Web Application | Informational | 3 |
+| Modern Web Application | Informational | 2 |
 | Storable and Cacheable Content | Informational | 2 |
 | Storable but Non-Cacheable Content | Informational | 4 |
 
@@ -220,13 +220,6 @@ Remove all comments that return information that may help an attacker and fix an
 
 The application appears to be a modern web application. If you need to explore it automatically then the Client Spider may well be more effective than the standard one.
 
-* URL: http://localhost:8080
-  * Node Name: `http://localhost:8080`
-  * Method: `GET`
-  * Parameter: ``
-  * Attack: ``
-  * Evidence: `<script type="module" crossorigin src="/assets/index-BLPSMrPv.js"></script>`
-  * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
 * URL: http://localhost:8080/robots.txt
   * Node Name: `http://localhost:8080/robots.txt`
   * Method: `GET`
@@ -243,7 +236,7 @@ The application appears to be a modern web application. If you need to explore i
   * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
 
 
-Instances: 3
+Instances: 2
 
 ### Solution
 
