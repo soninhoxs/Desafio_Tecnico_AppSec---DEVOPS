@@ -1,20 +1,20 @@
 == 1. Dependência disponível (chamada real à randomuser.me)
-  chamada 1:    152 ms  origem=network  disponível=true
+  chamada 1:    124 ms  origem=network  disponível=true
   chamada 2:      0 ms  origem=cache    disponível=true
 
 == 2. Dependência fora do ar (IP sem resposta)
    timeouts: conexão 0.5s, leitura 1.5s; 3 tentativas; orçamento 3.0s; disjuntor abre com 5 falhas seguidas e fica aberto 30s
-{"ts":"2026-10-28T18:51:44.414Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
-  requisição 1:   2123 ms  resultado=error         disponível=false disjuntor=closed
-{"ts":"2026-10-28T18:51:46.381Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
-  requisição 2:   1967 ms  resultado=error         disponível=false disjuntor=closed
-{"ts":"2026-10-28T18:51:48.644Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
-  requisição 3:   2262 ms  resultado=error         disponível=false disjuntor=closed
-{"ts":"2026-10-28T18:51:50.610Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
-  requisição 4:   1967 ms  resultado=error         disponível=false disjuntor=closed
-{"ts":"2026-10-28T18:51:52.783Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"circuit_breaker.state_change","dependency":"randomuser","from":"closed","to":"open"}
-{"ts":"2026-10-28T18:51:52.783Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
-  requisição 5:   2173 ms  resultado=error         disponível=false disjuntor=open
+{"ts":"2026-10-28T21:40:29.221Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
+  requisição 1:   2195 ms  resultado=error         disponível=false disjuntor=closed
+{"ts":"2026-10-28T21:40:31.220Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
+  requisição 2:   1999 ms  resultado=error         disponível=false disjuntor=closed
+{"ts":"2026-10-28T21:40:33.487Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
+  requisição 3:   2267 ms  resultado=error         disponível=false disjuntor=closed
+{"ts":"2026-10-28T21:40:35.578Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
+  requisição 4:   2091 ms  resultado=error         disponível=false disjuntor=closed
+{"ts":"2026-10-28T21:40:37.454Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"circuit_breaker.state_change","dependency":"randomuser","from":"closed","to":"open"}
+{"ts":"2026-10-28T21:40:37.454Z","level":"WARN","service":"coursesphere-api","instance":"api-1","event":"external.request_failed","error_class":"Net::OpenTimeout","error_message":"Failed to open TCP connection to 10.255.255.1:443 (user specified timeout for 10.255.255.1:443)"}
+  requisição 5:   1877 ms  resultado=error         disponível=false disjuntor=open
   requisição 6:      0 ms  resultado=circuit_open  disponível=false disjuntor=open
   requisição 7:      0 ms  resultado=circuit_open  disponível=false disjuntor=open
   requisição 8:      0 ms  resultado=circuit_open  disponível=false disjuntor=open

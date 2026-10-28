@@ -19,7 +19,7 @@ Alvo: http://localhost:3000
                POST lesson com video_url=javascript:... -> 201
 
 [VULNERÁVEL  ] VULN-08   Enumeração de usuários pelo tempo do login
-               mediana e-mail existente = 226 ms; e-mail inexistente = 4 ms
+               mediana e-mail existente = 175 ms; e-mail inexistente = 4 ms
 
 [VULNERÁVEL  ] VULN-09   Senha fraca aceita no cadastro ('123456')
                POST /signup com senha 123456 -> 201

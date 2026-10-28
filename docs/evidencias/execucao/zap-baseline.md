@@ -41,7 +41,7 @@ ZAP by [Checkmarx](https://checkmarx.com/).
 | Cross-Origin-Embedder-Policy Header Missing or Invalid | Low | 3 |
 | Cross-Origin-Resource-Policy Header Missing or Invalid | Low | Systemic |
 | Information Disclosure - Suspicious Comments | Informational | 1 |
-| Modern Web Application | Informational | 1 |
+| Modern Web Application | Informational | 3 |
 | Storable and Cacheable Content | Informational | 2 |
 | Storable but Non-Cacheable Content | Informational | 4 |
 
@@ -227,9 +227,23 @@ The application appears to be a modern web application. If you need to explore i
   * Attack: ``
   * Evidence: `<script type="module" crossorigin src="/assets/index-BLPSMrPv.js"></script>`
   * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
+* URL: http://localhost:8080/robots.txt
+  * Node Name: `http://localhost:8080/robots.txt`
+  * Method: `GET`
+  * Parameter: ``
+  * Attack: ``
+  * Evidence: `<script type="module" crossorigin src="/assets/index-BLPSMrPv.js"></script>`
+  * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
+* URL: http://localhost:8080/sitemap.xml
+  * Node Name: `http://localhost:8080/sitemap.xml`
+  * Method: `GET`
+  * Parameter: ``
+  * Attack: ``
+  * Evidence: `<script type="module" crossorigin src="/assets/index-BLPSMrPv.js"></script>`
+  * Other Info: `No links have been found while there are scripts, which is an indication that this is a modern web application.`
 
 
-Instances: 1
+Instances: 3
 
 ### Solution
 
