@@ -1,0 +1,49 @@
+# curl -sI https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/   (frontend via ALB)
+HTTP/1.1 200 OK
+Date: Wed, 28 Oct 2026 21:08:33 GMT
+Content-Type: text/html
+Content-Length: 465
+Connection: keep-alive
+Server: nginx
+Last-Modified: Wed, 28 Oct 2026 21:00:51 GMT
+ETag: "6ae26283-1d1"
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://randomuser.me; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+Cross-Origin-Opener-Policy: same-origin
+Cache-Control: no-cache
+Accept-Ranges: bytes
+
+
+# curl -sI https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/api/health   (API via ALB)
+HTTP/1.1 200 OK
+Date: Wed, 28 Oct 2026 21:08:33 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 136
+Connection: keep-alive
+Server: nginx
+x-frame-options: DENY
+x-content-type-options: nosniff
+x-permitted-cross-domain-policies: none
+referrer-policy: no-referrer
+cross-origin-resource-policy: same-origin
+content-security-policy: default-src 'none'; frame-ancestors 'none'
+vary: Accept, Origin
+etag: W/"8efbbf868f277d996352148e6592c251"
+cache-control: max-age=0, private, must-revalidate
+x-served-by: api-1
+x-request-id: 1ddcd4d2ddc87468f46db0da778e6535
+x-runtime: 0.000937
+
+
+# TLS negociado (openssl s_client)
+    Protocol  : TLSv1.3
+    Cipher    : TLS_AES_128_GCM_SHA256
+
+# GET https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/api/metrics (bloqueado na borda): HTTP 404
+# GET http://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/ (porta 80, sem listener e fora do security group): 000curl: (28) Connection timed out after 6002 milliseconds
+# GET https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/api/health: {"status":"ok","instance":"api-2","version":"efb938972537","uptime_seconds":360,"checks":{"database":{"status":"ok","latency_ms":0.34}}}
+# GET https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com:3001/api/health (Grafana): {"database":"ok","version":"12.4.13","commit":"6367d911d57309d1da370872b8fd76237b5a0ffa"}

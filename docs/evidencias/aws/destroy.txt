@@ -1,0 +1,43 @@
+# Conferência pós-destroy em 2026-10-28T21:35Z (us-east-2, somente leitura)
+
+Instâncias do projeto (estado):                            terminated
+VPCs do projeto:                                           0
+NAT Gateways do projeto (estado):                          deleted
+IPs elásticos do projeto:                                  0
+Volumes EBS do projeto:                                    0
+Load balancers coursesphere-*:                             0
+Target groups coursesphere-*:                              0
+Certificados ACM:                                          0
+Segredos coursesphere/* (inclusive agendados):             0
+Grupos de log /coursesphere*:                              0
+Papéis IAM coursesphere-*:                                 0
+Instance profiles coursesphere-*:                          0
+Recursos com a tag Project=coursesphere (Tagging API):     13
+
+# Exclusões registradas no CloudTrail (eventos de gestão da última hora)
+2026-10-28T21:31:58Z  DeleteCertificate    ResourceInUseException
+2026-10-28T21:31:58Z  DeleteFlowLogs       ok
+2026-10-28T21:31:58Z  TerminateInstances   ok
+2026-10-28T21:31:59Z  DeleteCertificate    ResourceInUseException
+2026-10-28T21:31:59Z  DeleteLogGroup       ok
+2026-10-28T21:31:59Z  DeleteRole           ok
+2026-10-28T21:32:01Z  DeleteCertificate    ResourceInUseException
+2026-10-28T21:32:03Z  DeleteCertificate    ResourceInUseException
+2026-10-28T21:32:07Z  DeleteCertificate    ResourceInUseException
+2026-10-28T21:32:16Z  DeleteCertificate    ok
+2026-10-28T21:32:16Z  DeleteLoadBalancer   ok
+2026-10-28T21:32:39Z  DeleteRole           ok
+2026-10-28T21:32:39Z  DeleteSecret         ok
+2026-10-28T21:32:50Z  DeleteNatGateway     ok
+2026-10-28T21:33:42Z  DeleteVpc            ok
+2026-10-28T21:33:42Z  ReleaseAddress       ok
+
+# Observações
+Itens no state do Terraform depois do destroy: 0.
+Os 13 itens que a Resource Groups Tagging API ainda listava na conferência (instância
+terminated, NAT deleted, 1 security group e suas 8 regras, 1 volume e 1 flow log) são
+registros atrasados do índice de tags: as consultas diretas acima mostram que nada disso
+existe mais (0 VPC, 0 sub-rede, 0 security group, 0 internet gateway, 0 volume).
+Instâncias terminated e NAT deleted continuam visíveis por um tempo e não geram custo.
+As tentativas de DeleteCertificate com ResourceInUseException são normais: o ACM só
+libera o certificado depois que o listener HTTPS do ALB é apagado.

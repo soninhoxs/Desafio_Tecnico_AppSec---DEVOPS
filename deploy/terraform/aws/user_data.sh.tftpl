@@ -1,0 +1,58 @@
+#!/bin/bash
+# Bootstrap da instância (cloud-init, executa uma vez como root).
+# Saída em /var/log/cloud-init-output.log e no console da instância.
+set -euo pipefail
+log() { echo "[coursesphere] $(date -u +%H:%M:%S) $*"; }
+
+log "1/6 pacotes do sistema"
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -q
+apt-get install -y -q ca-certificates curl git jq
+
+log "2/6 Docker Engine (repositorio oficial, chave GPG da Docker)"
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update -q
+apt-get install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+log "3/6 AWS CLI"
+snap wait system seed.loaded
+snap install aws-cli --classic
+
+log "4/6 codigo do repositorio (${git_ref})"
+install -d -m 0755 /opt/coursesphere
+cd /opt/coursesphere
+git init -q
+git remote add origin "${repo_url}"
+git fetch -q --depth 1 origin "${git_ref}"
+git checkout -q FETCH_HEAD
+log "commit $(git rev-parse --short=12 HEAD)"
+
+log "5/6 .env a partir do Secrets Manager (modo 600, sem eco no log)"
+umask 077
+/snap/bin/aws secretsmanager get-secret-value --region "${region}" --secret-id "${secret_arn}" \
+  --query SecretString --output text \
+  | jq -r 'to_entries[] | "\(.key)=\(.value)"' > .env
+echo "APP_VERSION=$(git rev-parse --short=12 HEAD)" >> .env
+umask 022
+
+# Na AWS a instância fica em sub-rede privada e só o ALB alcança estas portas
+# (security group). Por isso o balanceador e o Grafana escutam em todas as
+# interfaces da instância, e não só em 127.0.0.1 como no ambiente local.
+cat > docker-compose.aws.yml <<'YAML'
+services:
+  lb:
+    ports: !override
+      - "8080:8080"
+  grafana:
+    ports: !override
+      - "3001:3000"
+YAML
+
+log "6/6 docker compose up (build das imagens na instancia)"
+docker compose -f docker-compose.yml -f docker-compose.aws.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.aws.yml ps --format 'table {{.Service}}\t{{.Status}}'
+log "pronto"

@@ -130,6 +130,12 @@ jobs:
           terraform fmt -check -recursive
           terraform init -backend=false -input=false
           terraform validate
+      - name: Terraform AWS — fmt e validate (versões dos providers fixadas no .terraform.lock.hcl)
+        working-directory: deploy/terraform/aws
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false
+          terraform validate
       - name: docker compose config
         run: |
           python scripts/bootstrap_env.py

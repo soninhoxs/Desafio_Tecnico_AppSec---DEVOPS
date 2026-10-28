@@ -9,6 +9,9 @@
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+# Plano salvo: contém uma cópia do state (inclusive chaves privadas)
+tfplan
+*.tfplan
 crash.log
 
 # Evidências geradas localmente pelos scripts

@@ -41,6 +41,7 @@ A versão original funcionava, mas não resistia a um atacante nem a um incident
 - **Operação mensurável** — 2 réplicas atrás do Nginx, logs JSON com `request_id` de ponta a ponta, métricas Prometheus, 3 SLOs com alertas de burn rate, dashboard Grafana provisionado e runbooks.
 - **Falha controlada** — a dependência externa passa pela API com timeout, retry com backoff e jitter, circuit breaker, cache e fallback.
 - **Entrega segura** — CI/CD com SAST, SCA, DAST, varredura de segredos e de IaC, gate de CVE na imagem, SBOM, assinatura cosign e deploy GitOps (ArgoCD) num cluster criado por Terraform.
+- **Nuvem de verdade** — deploy na AWS com Terraform: aplicação numa sub-rede privada, atrás de um ALB só HTTPS, IAM com privilégio mínimo (conferido por simulação) e segredos no Secrets Manager, fora do state.
 - **Evidência versionada** — o E2E publica no repositório o PoC, o balanceamento, o exercício de falha, o OWASP ZAP e os prints de cada execução.
 
 ---
@@ -54,6 +55,7 @@ A versão original funcionava, mas não resistia a um atacante nem a um incident
 | **Hardening** | 13 controles além das correções, de headers HTTP a políticas de admissão no Kubernetes |
 | **Confiabilidade** | Nginx balanceando **2 réplicas**, health checks, logs JSON, métricas, **3 SLOs**, 11 alertas com runbook e dashboard Grafana |
 | **Plataforma** | Terraform cria o cluster kind + ArgoCD · CI/CD com gates de segurança e deploy GitOps |
+| **Nuvem (AWS)** | deploy real com Terraform: rede privada, ALB só HTTPS, IAM mínimo, Secrets Manager, IMDSv2 e VPC Flow Logs · na AWS, o PoC confirmou as 9 correções e o balanceamento dividiu 20/20 |
 | **Testes** | 131 testes no backend (autorização, autenticação, força bruta, circuit breaker, observabilidade) + PoC nas duas versões |
 | **Evidências** | resultados reais do CI versionados em [`docs/evidencias/execucao/`](docs/evidencias/execucao/), atualizados a cada push na `main` |
 
@@ -112,7 +114,7 @@ flowchart LR
 
 O navegador fala só com o balanceador. O Nginx serve o frontend estático e distribui `/api/*` entre as duas réplicas da API, com rate limit na borda e um `request_id` que aparece no log do balanceador **e** no da API, o que permite seguir uma requisição de ponta a ponta. As réplicas alcançam o PostgreSQL só pela rede interna `data`, com um usuário de banco sem superusuário. `/health/live` diz se o processo está vivo, sem tocar no banco; `/health/ready` testa o PostgreSQL, e a réplica sem banco sai do balanceamento. O Prometheus coleta `/metrics` com token, e o balanceador responde 404 para `/api/metrics`: as métricas não ficam expostas na borda.
 
-No Kubernetes, a mesma topologia usa Traefik (ingress), Deployment com 2 a 5 réplicas (HPA), PDB, StatefulSet do PostgreSQL, kube-prometheus-stack e Loki/Alloy para logs, tudo sincronizado pelo ArgoCD a partir deste repositório.
+No Kubernetes, a mesma topologia usa Traefik (ingress), Deployment com 2 a 5 réplicas (HPA), PDB, StatefulSet do PostgreSQL, kube-prometheus-stack e Loki/Alloy para logs, tudo sincronizado pelo ArgoCD a partir deste repositório. Na AWS, um ALB com HTTPS fica na frente da instância, que roda numa sub-rede privada ([Deploy na AWS](#deploy-na-aws-terraform)).
 
 ### Superfície da API
 
@@ -255,7 +257,7 @@ O exercício chama a `randomuser.me` de verdade (a segunda chamada vem do cache)
 
 | Workflow | Quando | O que faz |
 |---|---|---|
-| `ci.yml` | push/PR | testes Rails + PostgreSQL, RuboCop, ESLint + build, validação de Terraform/K8s/ArgoCD/Prometheus/compose |
+| `ci.yml` | push/PR | testes Rails + PostgreSQL, RuboCop, ESLint + build, validação de Terraform (kind e AWS)/K8s/ArgoCD/Prometheus/compose |
 | `security.yml` | push/PR + semanal | Semgrep, Brakeman, bundler-audit, npm audit, Trivy (fs/config), Gitleaks |
 | `cd.yml` | push na `main` | banco do Trivy no GHCR (cache por digest) → build → **Trivy na imagem (gate)** → SBOM → push GHCR → **assinatura cosign** → commit da nova tag no overlay → **ArgoCD faz o deploy** |
 | `e2e.yml` | push/PR | compose da versão corrigida (balanceamento + PoC + exercício de falha + ZAP + prints) e da `v0-original` (o PoC deve mostrar as falhas); na `main`, publica tudo em `docs/evidencias/execucao/` |
@@ -276,7 +278,7 @@ Todas as actions são fixadas por **SHA de commit** e as ferramentas são baixad
 | **PoC próprio** | Prova de cada achado | `python security/poc/poc.py --base-url ...` | `e2e.yml`, `k8s-e2e.yml` |
 | **kubeconform / helm / kustomize** | Validação dos manifests e charts do ArgoCD | `python scripts/validate_gitops.py` | `ci.yml` |
 | **promtool** | Regras e alertas do Prometheus | `promtool check rules deploy/observability/prometheus/rules/*.yml` | `ci.yml` |
-| **Terraform** | Validação da IaC | `cd deploy/terraform/kind && terraform init -backend=false && terraform validate` | `ci.yml` |
+| **Terraform** | Validação da IaC (kind e AWS) | `cd deploy/terraform/kind && terraform init -backend=false && terraform validate` (o mesmo em `deploy/terraform/aws`) | `ci.yml` |
 | **Minitest** | Testes (incl. autorização e circuit breaker) | `cd backend && bin/rails test` (precisa de PostgreSQL) | `ci.yml` |
 | **Exercício de falha** | Circuit breaker com a dependência fora do ar | `docker compose exec -T api-1 bin/rails runner script/resilience_drill.rb` | `e2e.yml` |
 | **Playwright** | Prints da aplicação e do Grafana | `pip install playwright==1.64.0 && python -m playwright install chromium && python scripts/ci/capture_screenshots.py --out out` | `e2e.yml` |
@@ -412,6 +414,42 @@ Destruir: `terraform destroy -var repo_url=...`.
 
 ---
 
+## Deploy na AWS (Terraform)
+
+Deploy real em nuvem, com as três boas práticas que o edital pede: **rede privada, IAM com privilégio mínimo e gestão de segredos**. O Terraform de [`deploy/terraform/aws/`](deploy/terraform/aws/) cria:
+
+- uma VPC com sub-redes públicas, onde ficam só o ALB e o NAT, e privadas, onde fica a aplicação;
+- um ALB só com HTTPS (TLS 1.2/1.3), liberado só para um IP;
+- uma instância sem IP público e sem SSH, administrada pelo SSM, que roda o mesmo `docker compose` do laboratório;
+- um papel IAM que só lê o próprio segredo;
+- o segredo no Secrets Manager, gravado por atributo *write-only*, sem passar pelo state;
+- IMDSv2 com hop limit 1, disco criptografado e VPC Flow Logs.
+
+```bash
+aws login --profile coursesphere            # credenciais temporárias, sem chave fixa
+cd deploy/terraform/aws && terraform init
+terraform plan -out=tfplan -var aws_profile=coursesphere-tf \
+  -var allowed_cidr="$(curl -s https://checkip.amazonaws.com)/32" -var git_ref="$(git rev-parse HEAD)"
+terraform apply tfplan
+```
+
+| Verificado na AWS | Resultado |
+|---|---|
+| Rede | instância sem IP público e sem chave SSH; a sub-rede privada só sai pelo NAT |
+| IAM | `simulate-principal-policy`: só `GetSecretValue` no próprio segredo é permitido; o resto é negado |
+| Segredos | `.env` montado no boot a partir do Secrets Manager, com permissão 600 |
+| Borda | TLS 1.3; porta 80 fechada; `/api/metrics` com 404 na borda |
+| Metadados | IMDSv1 recusado (401); um container não alcança o IMDS |
+| Aplicação | PoC com as 9 vulnerabilidades CORRIGIDO; balanceamento 20/20 entre `api-1` e `api-2` |
+
+![Grafana rodando na AWS](docs/evidencias/aws/grafana-aws-slos-e-trafego.png)
+
+_O Grafana do deploy na AWS, servido pelo ALB: SLO-1 em 100%, p95 do login em 242,5 ms, 2 réplicas no ar e o tráfego dividido entre `api-1` e `api-2`._
+
+Passo a passo, custo (~US$ 0,20 por hora), plano gratuito da AWS e o que muda em produção: [`deploy/terraform/aws/README.md`](deploy/terraform/aws/README.md). Evidências da execução real: [`docs/evidencias/aws/`](docs/evidencias/aws/).
+
+---
+
 ## Testes
 
 ```bash
@@ -446,6 +484,7 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 | **Política de segurança e recursos de segurança do GitHub.** A aba de segurança indicava "No security policy detected". Agora o `SECURITY.md` define o canal de reporte, prazos por severidade e regras para testes. No repositório foram ligados o **relato privado de vulnerabilidades** (botão **Report a vulnerability** em Security and quality → Advisories), o **grafo de dependências** e os **alertas do Dependabot**. Na ativação, as 284 versões de gems e npm do grafo foram cruzadas com o GitHub Advisory Database: nenhum aviso conhecido. | Postura de segurança, 7 (SCA) | [`SECURITY.md`](SECURITY.md), Settings → Advanced Security |
 | **Alerta do Code scanning (Semgrep) tratado.** A regra de regex de URI passou a valer só para `backend/`: o script de evidência da VULN-06 usa a regex antiga de propósito, para comparar com a validação nova. | 7 (SAST no repositório) | `security/semgrep/coursesphere.yml` |
 | **19 testes novos** (circuit breaker, cliente da dependência com transporte falso, endpoint). | Diferencial: testes automatizados | `backend/test/services/`, `backend/test/controllers/guest_instructors_controller_test.rb` |
+| **Deploy real na AWS.** Terraform com rede privada (instância sem IP público, atrás de ALB só HTTPS), IAM com privilégio mínimo conferido por `simulate-principal-policy`, segredos no Secrets Manager sem passar pelo state, IMDSv2 e VPC Flow Logs. Na AWS, o PoC confirmou as 9 correções e o balanceamento dividiu 20/20. O ambiente foi destruído depois da coleta. | Diferencial: "deploy real em nuvem com boas práticas de segurança: rede privada, IAM com privilégio mínimo, gestão de segredos" | [`deploy/terraform/aws/`](deploy/terraform/aws/), [`docs/evidencias/aws/`](docs/evidencias/aws/) |
 
 ---
 
@@ -453,7 +492,7 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 
 | Pilar | Onde |
 |---|---|
-| **Infraestrutura** — ambientes, cluster, rede, armazenamento | `docker-compose.yml`, `deploy/terraform/kind`, `deploy/k8s` (NetworkPolicies, PVC, HPA, PDB) |
+| **Infraestrutura** — ambientes, cluster, rede, armazenamento | `docker-compose.yml`, `deploy/terraform/kind`, `deploy/terraform/aws` (VPC privada, ALB, Secrets Manager), `deploy/k8s` (NetworkPolicies, PVC, HPA, PDB) |
 | **Automações** — build, teste, deploy, CI/CD | `.github/workflows`, `scripts/`, `deploy/argocd` (GitOps) |
 | **Observabilidade** — monitoramento, logs, alertas, incidentes | `backend/lib/observability`, `deploy/observability`, `docs/observabilidade.md`, `docs/runbooks`, circuit breaker da dependência externa |
 | **Segurança** — scan de imagens, políticas, segredos | correções (`backend/`), `security/`, `deploy/policies` (Kyverno), Trivy/cosign no CD, alertas do Dependabot, segredos via Terraform/.env, `SECURITY.md` + relato privado de vulnerabilidades |
@@ -481,7 +520,8 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 │   ├── argocd/root/          # app-of-apps (Helm)
 │   ├── policies/             # Kyverno
 │   ├── observability/        # Prometheus (regras e SLOs), Alertmanager, Grafana
-│   └── terraform/kind/       # cluster kind + ArgoCD + segredos
+│   ├── terraform/kind/       # cluster kind + ArgoCD + segredos
+│   └── terraform/aws/        # deploy real na AWS: VPC privada, ALB HTTPS, IAM mínimo, Secrets Manager
 ├── security/
 │   ├── poc/poc.py            # provas de conceito
 │   └── semgrep/              # regras próprias
@@ -491,7 +531,7 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 │   ├── threat-model.md       # STRIDE + DFD
 │   ├── observabilidade.md    # sinais, SLOs, alertas, dashboard
 │   ├── runbooks/             # um por alerta + modelo de postmortem
-│   └── evidencias/           # baseline/ e depois/ (SAST/SCA) · execucao/ (gerada pelo CI)
+│   └── evidencias/           # baseline/ e depois/ (SAST/SCA) · execucao/ (gerada pelo CI) · aws/ (deploy real)
 ├── scripts/                  # bootstrap do .env, demo do LB, validação, CI (evidências e prints)
 ├── docker-compose.yml
 └── SECURITY.md               # política de segurança e como reportar vulnerabilidades
@@ -508,6 +548,8 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 | [`docs/observabilidade.md`](docs/observabilidade.md) | métricas, logs, SLIs/SLOs, PromQL, alertas e dashboard |
 | [`docs/runbooks/`](docs/runbooks/) | diagnóstico e mitigação de cada alerta, e modelo de postmortem |
 | [`docs/VERIFICACAO.md`](docs/VERIFICACAO.md) | como rodar a mesma verificação do CI na máquina |
+| [`deploy/terraform/aws/README.md`](deploy/terraform/aws/README.md) | deploy na AWS: arquitetura, controles de segurança, passo a passo, custo e limites |
+| [`docs/evidencias/aws/`](docs/evidencias/aws/) | evidências do deploy real na AWS (rede, IAM, segredos, TLS, PoC, balanceamento) |
 | [`SECURITY.md`](SECURITY.md) | versões suportadas, como reportar, prazos e regras para testes |
 
 ---

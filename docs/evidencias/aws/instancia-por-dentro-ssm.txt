@@ -1,0 +1,35 @@
+# Coletado em 2026-10-28T21:09Z com: aws ssm send-command --document-name AWS-RunShellScript (status Success)
+
+# docker compose ps (instancia na sub-rede privada, via SSM Run Command)
+SERVICE        STATUS
+alertmanager   Up 7 minutes
+api-1          Up 7 minutes (healthy)
+api-2          Up 7 minutes (healthy)
+db             Up 7 minutes (healthy)
+frontend       Up 7 minutes (healthy)
+grafana        Up 7 minutes
+lb             Up 6 minutes (healthy)
+prometheus     Up 7 minutes
+
+# commit publicado
+efb938972537170f5294d3fe51330a27b1a99922
+
+# .env veio do Secrets Manager: permissao e dono (conteudo nao e exibido)
+-rw------- root /opt/coursesphere/.env
+
+# Prometheus: requisicoes por replica (http_server_requests_total)
+api-1	106
+api-2	105
+
+# Prometheus: alvos coletados
+coursesphere-api	api-1	up
+coursesphere-api	api-2	up
+prometheus	localhost:9090	up
+
+# IMDSv2 a partir da propria instancia (hop 1): codigo HTTP do pedido de token
+HTTP 200
+# IMDSv1 (sem token) a partir da instancia: deve ser recusado
+HTTP 401
+# IMDS a partir de um container (hop limit 1 bloqueia)
+HTTP 000
+sem resposta: o container nao alcanca o IMDS

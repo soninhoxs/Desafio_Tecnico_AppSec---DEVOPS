@@ -1,0 +1,66 @@
+[
+  {
+    "Group": "coursesphere-alb",
+    "Direction": "ingress",
+    "Protocol": "tcp",
+    "Ports": "3001-3001",
+    "From/To": "x.x.x.x/32",
+    "Description": "HTTPS do Grafana"
+  },
+  {
+    "Group": "coursesphere-alb",
+    "Direction": "ingress",
+    "Protocol": "tcp",
+    "Ports": "443-443",
+    "From/To": "x.x.x.x/32",
+    "Description": "HTTPS da aplicacao"
+  },
+  {
+    "Group": "coursesphere-alb",
+    "Direction": "egress",
+    "Protocol": "tcp",
+    "Ports": "8080-8080",
+    "From/To": "coursesphere-app",
+    "Description": "Encaminha para o balanceador Nginx da instancia"
+  },
+  {
+    "Group": "coursesphere-alb",
+    "Direction": "egress",
+    "Protocol": "tcp",
+    "Ports": "3001-3001",
+    "From/To": "coursesphere-app",
+    "Description": "Encaminha para o Grafana da instancia"
+  },
+  {
+    "Group": "coursesphere-app",
+    "Direction": "ingress",
+    "Protocol": "tcp",
+    "Ports": "8080-8080",
+    "From/To": "coursesphere-alb",
+    "Description": "Nginx (balanceador das 2 replicas) a partir do ALB"
+  },
+  {
+    "Group": "coursesphere-app",
+    "Direction": "ingress",
+    "Protocol": "tcp",
+    "Ports": "3001-3001",
+    "From/To": "coursesphere-alb",
+    "Description": "Grafana a partir do ALB"
+  },
+  {
+    "Group": "coursesphere-app",
+    "Direction": "egress",
+    "Protocol": "tcp",
+    "Ports": "80-80",
+    "From/To": "0.0.0.0/0",
+    "Description": "HTTP de saida via NAT (espelho apt da AWS, pacotes assinados)"
+  },
+  {
+    "Group": "coursesphere-app",
+    "Direction": "egress",
+    "Protocol": "tcp",
+    "Ports": "443-443",
+    "From/To": "0.0.0.0/0",
+    "Description": "HTTPS de saida via NAT"
+  }
+]

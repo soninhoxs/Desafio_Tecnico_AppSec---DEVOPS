@@ -1,0 +1,8 @@
+{
+  "Name": "coursesphere/app-env-71c76455156d0076d464e44749",
+  "ARN": "arn:aws:secretsmanager:us-east-2:************:secret:coursesphere/app-env-71c76455156d0076d464e44749-BbZqLf",
+  "Description": "Variaveis secretas do .env da aplicacao, lidas pela instancia no boot.",
+  "KmsKeyId": null,
+  "RotationEnabled": null,
+  "CreatedDate": "2026-10-28T17:53:06.256000-03:00"
+}

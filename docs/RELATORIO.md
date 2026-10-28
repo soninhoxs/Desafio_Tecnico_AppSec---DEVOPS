@@ -50,9 +50,9 @@ O controle de acesso principal ("um usuário não edita o curso de outro") **já
 
 **Fora de escopo**
 - A API externa `randomuser.me` em si. Só a *integração* com ela foi avaliada (desde esta revisão, a chamada passa pela API com timeout, retry e circuit breaker: seção 8.7).
-- Negação de serviço volumétrica, engenharia social e infraestrutura de nuvem real (não existia).
+- Negação de serviço volumétrica e engenharia social. A aplicação original não tinha infraestrutura em nuvem; o deploy na AWS criado neste trabalho é verificado na seção 9.2.
 
-**Regras de engajamento:** todos os testes dinâmicos foram feitos contra instâncias locais criadas para isso (docker compose, kind), com usuários criados pelo próprio teste.
+**Regras de engajamento:** todos os testes dinâmicos foram feitos contra instâncias criadas para isso, com usuários criados pelo próprio teste: locais (docker compose, kind) e um ambiente próprio na AWS, liberado só para o IP do testador e destruído depois da coleta.
 
 ---
 
@@ -416,7 +416,7 @@ Também é resultado de um pentest saber o que **não** está vulnerável:
 |---|---|---|
 | R1 | Banco gerenciado com alta disponibilidade, backups automáticos e PITR (ex.: RDS Multi-AZ) | Alta |
 | R2 | TLS de ponta a ponta (cert-manager + Let's Encrypt) e `FORCE_SSL=true` | Alta |
-| R3 | Gestão de segredos com cofre (AWS Secrets Manager/Vault + External Secrets Operator) e rotação | Alta |
+| R3 | Cofre de segredos também no Kubernetes (External Secrets Operator lendo o Secrets Manager/Vault) e rotação automática. O deploy na AWS já usa o Secrets Manager (seção 9.2) | Alta |
 | R4 | MFA (TOTP/WebAuthn), ao menos para instrutores | Média |
 | R5 | Paginação no servidor em `GET /courses` (hoje devolve tudo: risco de desempenho e de disponibilidade) | Média |
 | R6 | Sessão em cookie `HttpOnly; Secure; SameSite=Strict` + proteção CSRF, em vez de `localStorage` | Média |
@@ -527,7 +527,7 @@ stateDiagram-v2
 
 | Pilar | Implementação |
 |---|---|
-| **Infraestrutura** | Terraform cria um cluster **kind** (1 control-plane + 2 workers), namespaces com Pod Security e segredos aleatórios (fora do Git), e instala o **ArgoCD** (`deploy/terraform/kind`) |
+| **Infraestrutura** | Terraform cria um cluster **kind** (1 control-plane + 2 workers), namespaces com Pod Security e segredos aleatórios (fora do Git), e instala o **ArgoCD** (`deploy/terraform/kind`). Um segundo Terraform faz o **deploy real na AWS** com rede privada, IAM mínimo e Secrets Manager (`deploy/terraform/aws`, seção 9.2) |
 | **GitOps** | Padrão **app-of-apps**: o Terraform cria só a Application `root`. O ArgoCD aplica, em ordem (*sync waves*), Traefik, metrics-server, Kyverno, kube-prometheus-stack, Loki, Alloy, políticas, observabilidade e a aplicação, com `prune` + `selfHeal` |
 | **Automação (CI/CD)** | `ci.yml` (testes, lint, build, validação de toda a IaC), `security.yml` (SAST/SCA/segredos/IaC, semanal também), `cd.yml` (build → scan → SBOM → push → assinatura → commit da nova tag = deploy), `e2e.yml` (compose + PoCs + exercício de falha + ZAP + prints, com as evidências publicadas no repositório), `k8s-e2e.yml` (Terraform + ArgoCD num runner limpo) |
 | **Observabilidade** | Logs JSON, Prometheus, Alertmanager, Grafana, Loki/Alloy, SLOs, runbooks |
@@ -551,6 +551,23 @@ Cada problema abaixo foi pego por uma etapa do pipeline e corrigido na causa. É
 | Semgrep (Code scanning) | a regra de regex de URI apontava o script de evidência da VULN-06, que usa a regex antiga de propósito | regra limitada a `backend/` |
 | Print do Grafana (E2E) | SLO-1 e orçamento de erro como "No data" quando não há nenhum 5xx (a série de erro não existe); painel do disjuntor vazio até a primeira troca de estado | `or vector(0)` nos numeradores de erro; séries da dependência iniciadas em zero no boot |
 
+### 9.2 Deploy real na AWS
+
+O Terraform de [`deploy/terraform/aws/`](../deploy/terraform/aws/) leva o mesmo `docker compose` para a AWS (`us-east-2`), com as três práticas do diferencial do edital:
+
+| Prática | Implementação | Como foi verificado |
+|---|---|---|
+| **Rede privada** | a instância fica numa sub-rede privada, sem IP público e sem chave SSH, e sai para a internet só pelo NAT. Um ALB público com **só HTTPS** (TLS 1.2/1.3) aceita **um** IP, e a instância só aceita tráfego do security group do ALB | `describe-instances`, rotas e regras dos security groups; TLS 1.3 negociado; porta 80 sem resposta; `/api/metrics` com 404 na borda |
+| **IAM com privilégio mínimo** | o papel da instância tem só o SSM (administração sem SSH) e `GetSecretValue` em **um** ARN | `iam simulate-principal-policy`: só a leitura do próprio segredo é permitida; ler outro segredo, gravar no segredo, listar segredos, S3, EC2 e IAM dão `implicitDeny` |
+| **Gestão de segredos** | senhas e chaves são geradas como valores efêmeros e gravadas no Secrets Manager por atributo *write-only*, sem passar pelo state do Terraform. A instância monta o `.env` no boot | `.env` com permissão 600 (root) dentro da instância, conferido pelo SSM |
+| Endurecimento extra | IMDSv2 obrigatório com *hop limit* 1, disco criptografado, VPC Flow Logs, commit fixado (a tag `v0-original` é recusada) | IMDSv1 recusado (401); um container não alcança o IMDS; Flow Logs `ACTIVE`; instância `Online` no SSM |
+
+**Resultado na nuvem:** o PoC rodado contra o ALB confirmou as **9 vulnerabilidades como CORRIGIDO** e o IDOR como PROTEGIDO. O balanceamento dividiu 40 requisições em **20/20** entre `api-1` e `api-2`, e o Prometheus da instância contou 106 e 105 requisições por réplica. O `trivy config` (gate HIGH/CRITICAL do CI) passa. Os dois achados que são escolhas do desenho estão justificados no `.trivyignore.yaml`: ALB público restrito a um IP, e saída 443/80 sem filtro por domínio.
+
+**Achado durante o deploy:** contas no plano gratuito da AWS só criam tipos de instância elegíveis ao Free Tier. A `t3.medium` foi recusada (*"not eligible for Free Tier"*, confirmado no CloudTrail) e o padrão passou a ser `m7i-flex.large` (8 GB).
+
+**Limites conscientes:** certificado autoassinado (sem domínio próprio), uma única instância com o banco no mesmo host, imagens montadas na própria instância e state local. Para produção: ACM com domínio, ECS/EKS em várias AZs com RDS Multi-AZ (R1), imagens assinadas verificadas com cosign, filtro de saída por domínio, backend S3 para o state e um papel de deploy dedicado (IAM Identity Center ou OIDC), em vez de credenciais de uma conta pessoal. Detalhes em [`deploy/terraform/aws/README.md`](../deploy/terraform/aws/README.md); evidências em [`docs/evidencias/aws/`](evidencias/aws/).
+
 ---
 
 ## 10. Limitações e transparência
@@ -559,6 +576,7 @@ Cada problema abaixo foi pego por uma etapa do pipeline e corrigido na causa. É
 - As **evidências dinâmicas** são geradas pelos workflows do GitHub Actions, não à mão. O `E2E` (PoC contra as versões original e corrigida, distribuição do balanceador, métricas por réplica, exercício de falha, ZAP e prints da aplicação e do Grafana) roda a cada push, e na `main` publica o resultado em [`docs/evidencias/execucao/`](evidencias/execucao/). O `K8s E2E` (cluster kind + ArgoCD) roda sob demanda e toda semana, e deixa o resultado como artefato da execução. Os comandos locais, a ordem da suíte e a leitura de uma falha de CI estão em [`docs/VERIFICACAO.md`](VERIFICACAO.md).
 - O DAST (ZAP baseline) é passivo e não autenticado. Testes de carga não foram executados (R7, R9).
 - O PostgreSQL do laboratório é de instância única, de propósito (risco D1 documentado).
+- O deploy na AWS (seção 9.2) foi uma execução de demonstração: criado, verificado e destruído no mesmo dia, para não manter custo nem superfície exposta. As evidências ficam em [`docs/evidencias/aws/`](evidencias/aws/), e o Terraform permite recriar o ambiente com um comando.
 
 ---
 
@@ -572,6 +590,7 @@ Cada problema abaixo foi pego por uma etapa do pipeline e corrigido na causa. É
 | [`docs/evidencias/execucao/`](evidencias/execucao/) (gerada pelo CI a cada push na `main`) | PoC contra a `v0-original` (VULNERÁVEL) e a corrigida (CORRIGIDO), com requisição e resposta. Balanceamento (`lb_demo`, log JSON do Nginx, contagem por réplica no Prometheus), logs JSON da API, exercício de falha do circuit breaker, cabeçalhos, OWASP ZAP e prints da aplicação e do Grafana. Tokens JWT removidos |
 | Artefatos CI `evidencias-versao-original`, `evidencias-versao-corrigida`, `zap-baseline` | Os mesmos arquivos, de cada execução (inclusive em pull requests) |
 | Artefato CI `evidencias-kubernetes` | Applications do ArgoCD, pods, políticas, PoC via ingress (workflow `K8s E2E`) |
+| [`docs/evidencias/aws/`](evidencias/aws/) | Deploy real na AWS: instância, rotas, security groups, ALB, simulação do IAM, metadados do segredo, Flow Logs, SSM, verificações de dentro da instância, TLS e cabeçalhos, PoC e balanceamento. Conta e IP mascarados; JWT removidos |
 
 ## Anexo B — Mapa de correções
 

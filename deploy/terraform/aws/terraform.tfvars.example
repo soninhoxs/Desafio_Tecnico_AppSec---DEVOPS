@@ -1,0 +1,5 @@
+# Copie para terraform.tfvars (ignorado pelo Git) e ajuste.
+aws_profile  = "coursesphere-tf"
+allowed_cidr = "203.0.113.10/32" # seu IP público: curl https://checkip.amazonaws.com
+git_ref      = "main"            # de preferência o SHA completo do commit
+# instance_type = "m7i-flex.large" # elegível ao plano gratuito da AWS

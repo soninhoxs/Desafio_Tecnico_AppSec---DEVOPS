@@ -20,3 +20,20 @@ misconfigurations:
     statement: >-
       Mesma restrição da imagem oficial: o grupo do usuário postgres é 70.
       runAsGroup acima de 10000 quebra a inicialização do volume.
+  - id: AWS-0053
+    paths:
+      - deploy/terraform/aws/alb.tf
+    statement: >-
+      O ALB é a porta de entrada da aplicação e precisa ser alcançável de fora
+      da VPC. O risco é tratado no security group: só o CIDR autorizado
+      (variável allowed_cidr, sem 0.0.0.0/0) chega às portas 443 e 3001, só
+      HTTPS com TLS 1.2/1.3, e cabeçalhos HTTP inválidos são descartados.
+  - id: AWS-0104
+    paths:
+      - deploy/terraform/aws/security.tf
+    statement: >-
+      Saída da instância (sub-rede privada, via NAT) limitada às portas 443 e 80.
+      Os destinos são domínios (espelho apt da AWS, Docker Hub, GitHub,
+      randomuser.me, APIs da AWS), que security group não filtra. Filtrar por
+      domínio exige AWS Network Firewall ou proxy de saída: recomendação para
+      produção, junto com imagens no ECR e VPC endpoints (docs/RELATORIO.md, R3).

@@ -1,0 +1,56 @@
+{
+  "Role": "coursesphere-app-instance",
+  "AttachedManagedPolicies": [
+    "AmazonSSMManagedInstanceCore"
+  ],
+  "InlinePolicies": {
+    "read-app-secret": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Action": "secretsmanager:GetSecretValue",
+          "Effect": "Allow",
+          "Resource": "arn:aws:secretsmanager:us-east-2:************:secret:coursesphere/app-env-71c76455156d0076d464e44749-BbZqLf",
+          "Sid": "ReadOnlyTheAppSecret"
+        }
+      ]
+    }
+  },
+  "SimulatePrincipalPolicy": [
+    {
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:us-east-2:************:secret:coursesphere/app-env-71c76455156d0076d464e44749-BbZqLf",
+      "Decision": "allowed"
+    },
+    {
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "arn:aws:secretsmanager:us-east-2:************:secret:outro-segredo-AbCdEf",
+      "Decision": "implicitDeny"
+    },
+    {
+      "Action": "secretsmanager:PutSecretValue",
+      "Resource": "arn:aws:secretsmanager:us-east-2:************:secret:coursesphere/app-env-71c76455156d0076d464e44749-BbZqLf",
+      "Decision": "implicitDeny"
+    },
+    {
+      "Action": "secretsmanager:ListSecrets",
+      "Resource": "*",
+      "Decision": "implicitDeny"
+    },
+    {
+      "Action": "s3:ListAllMyBuckets",
+      "Resource": "*",
+      "Decision": "implicitDeny"
+    },
+    {
+      "Action": "ec2:RunInstances",
+      "Resource": "*",
+      "Decision": "implicitDeny"
+    },
+    {
+      "Action": "iam:CreateUser",
+      "Resource": "*",
+      "Decision": "implicitDeny"
+    }
+  ]
+}

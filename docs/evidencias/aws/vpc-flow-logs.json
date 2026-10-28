@@ -1,0 +1,8 @@
+[
+  {
+    "FlowLogId": "fl-0587a262c8658eb89",
+    "TrafficType": "ALL",
+    "Status": "ACTIVE",
+    "LogGroupName": "/coursesphere/vpc-flow-logs"
+  }
+]

@@ -1,0 +1,78 @@
+{
+  "Subnets": [
+    {
+      "SubnetId": "subnet-01cfc6533525fc5a2",
+      "Name": "coursesphere-private-us-east-2a",
+      "Cidr": "10.40.10.0/24",
+      "AZ": "us-east-2a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0735090924f18033c",
+      "Name": "coursesphere-public-us-east-2a",
+      "Cidr": "10.40.0.0/24",
+      "AZ": "us-east-2a",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-0f31c70fef19c51cf",
+      "Name": "coursesphere-public-us-east-2b",
+      "Cidr": "10.40.1.0/24",
+      "AZ": "us-east-2b",
+      "MapPublicIpOnLaunch": false
+    },
+    {
+      "SubnetId": "subnet-09506d2a492053484",
+      "Name": "coursesphere-private-us-east-2b",
+      "Cidr": "10.40.11.0/24",
+      "AZ": "us-east-2b",
+      "MapPublicIpOnLaunch": false
+    }
+  ],
+  "RouteTables": [
+    {
+      "Name": null,
+      "Subnets": [],
+      "Routes": [
+        {
+          "Destination": "10.40.0.0/16",
+          "Target": "local"
+        }
+      ]
+    },
+    {
+      "Name": "coursesphere-private",
+      "Subnets": [
+        "subnet-01cfc6533525fc5a2",
+        "subnet-09506d2a492053484"
+      ],
+      "Routes": [
+        {
+          "Destination": "10.40.0.0/16",
+          "Target": "local"
+        },
+        {
+          "Destination": "0.0.0.0/0",
+          "Target": "nat-0c011ac7ac2abec05"
+        }
+      ]
+    },
+    {
+      "Name": "coursesphere-public",
+      "Subnets": [
+        "subnet-0f31c70fef19c51cf",
+        "subnet-0735090924f18033c"
+      ],
+      "Routes": [
+        {
+          "Destination": "10.40.0.0/16",
+          "Target": "local"
+        },
+        {
+          "Destination": "0.0.0.0/0",
+          "Target": "igw-081af553e4faec056"
+        }
+      ]
+    }
+  ]
+}

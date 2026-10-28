@@ -1,0 +1,32 @@
+{
+  "InstanceId": "i-0dfb5a51e26b1e13e",
+  "InstanceType": "m7i-flex.large",
+  "State": "running",
+  "SubnetId": "subnet-01cfc6533525fc5a2",
+  "PrivateIpAddress": "10.40.10.32",
+  "PublicIpAddress": null,
+  "KeyName (chave SSH)": null,
+  "MetadataOptions (IMDS)": {
+    "State": "applied",
+    "HttpTokens": "required",
+    "HttpPutResponseHopLimit": 1,
+    "HttpEndpoint": "enabled",
+    "HttpProtocolIpv6": "disabled",
+    "InstanceMetadataTags": "disabled"
+  },
+  "IamInstanceProfile": "arn:aws:iam::************:instance-profile/coursesphere-app-instance",
+  "SecurityGroups": [
+    {
+      "GroupId": "sg-0689fda9cff80cbce",
+      "GroupName": "coursesphere-app"
+    }
+  ],
+  "Volumes": [
+    {
+      "VolumeId": "vol-002d355ef24832c10",
+      "Size": 30,
+      "VolumeType": "gp3",
+      "Encrypted": true
+    }
+  ]
+}

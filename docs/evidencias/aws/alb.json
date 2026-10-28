@@ -1,0 +1,17 @@
+{
+  "DNSName": "coursesphere-alb-237715670.us-east-2.elb.amazonaws.com",
+  "Scheme": "internet-facing",
+  "Listeners": [
+    {
+      "Port": 443,
+      "Protocol": "HTTPS",
+      "SslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06"
+    },
+    {
+      "Port": 3001,
+      "Protocol": "HTTPS",
+      "SslPolicy": "ELBSecurityPolicy-TLS13-1-2-2021-06"
+    }
+  ],
+  "drop_invalid_header_fields": "true"
+}

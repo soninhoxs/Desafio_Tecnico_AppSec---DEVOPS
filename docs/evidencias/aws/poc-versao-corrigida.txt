@@ -1,0 +1,33 @@
+# python security/poc/poc.py --base-url https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/api --expect fixed   (exit 0)
+Alvo: https://coursesphere-alb-237715670.us-east-2.elb.amazonaws.com/api
+
+[CORRIGIDO   ] VULN-01   Aula em rascunho visível para outro usuário
+               outro usuário: GET /courses/5/lessons -> 200 (rascunho na lista: False); GET /lessons/14 -> 404
+
+[PROTEGIDO   ] CONTROLE  Editar/excluir curso de outro criador (IDOR)
+               PUT -> 403, DELETE -> 403 (esperado 403)
+
+[CORRIGIDO   ] VULN-02   JWT continua válido após logout
+               DELETE /logout -> 200; GET /me com o mesmo token -> 401
+
+[CORRIGIDO   ] VULN-04   Credenciais padrão do seed (tech@coursesphere.com / password123)
+               POST /login -> 401
+
+[CORRIGIDO   ] VULN-05   Modo development exposto (stack trace / /rails/info)
+               GET /rails/info/properties -> 404 (aberto: False); GET /lessons/999999999 -> 404 (stack trace na resposta: False)
+
+[CORRIGIDO   ] VULN-06   video_url aceita javascript: (XSS armazenado latente)
+               POST lesson com video_url=javascript:... -> 422
+
+[CORRIGIDO   ] VULN-08   Enumeração de usuários pelo tempo do login
+               mediana e-mail existente = 585 ms; e-mail inexistente = 583 ms
+
+[CORRIGIDO   ] VULN-09   Senha fraca aceita no cadastro ('123456')
+               POST /signup com senha 123456 -> 422
+
+[CORRIGIDO   ] VULN-03   Sem proteção contra força bruta no login
+               12 senhas erradas -> [401, 401, 429, 429, 429, 429, 429, 429, 429, 429, 429, 429]; senha correta em seguida -> 429 (429 = rate limit; 401 = conta bloqueada)
+
+Resultados gravados em C:\Users\Soninho\AppData\Local\Temp\claude\C-2CB1~1\B42F55~1\SCRATC~1\aws-poc.json
+
+Todos os resultados conferem com o esperado: CORRIGIDO.
