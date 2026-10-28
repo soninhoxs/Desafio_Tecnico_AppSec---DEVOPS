@@ -27,6 +27,8 @@ x-api-env: &api-env
   JWT_TTL_MINUTES: "60"
   RAILS_MAX_THREADS: "5"
   APP_VERSION: ${APP_VERSION:-local}
+  # rootfs somente leitura: o Bundler precisa de um HOME gravável (tmpfs).
+  HOME: /tmp
 
 x-api: &api
   image: coursesphere-api:${APP_VERSION:-local}
