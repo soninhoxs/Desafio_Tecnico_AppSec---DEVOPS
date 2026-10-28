@@ -8,6 +8,8 @@ Rails.application.routes.draw do
   # Cursos e aulas
   resources :courses, only: %i[index show create update destroy] do
     resources :lessons, only: %i[index create]
+    # Dependência externa com timeout, retry e circuit breaker (ver GuestInstructorClient).
+    resource :guest_instructor, only: :show
   end
   resources :lessons, only: %i[show update destroy]
 

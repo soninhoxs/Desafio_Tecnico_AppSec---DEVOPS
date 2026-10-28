@@ -2,7 +2,6 @@ import { useEffect, useState, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/auth-context';
 import api from '../services/api';
-import axios from 'axios';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 // Defesa em profundidade: o backend já só aceita http/https, mas o link só é
@@ -23,6 +22,7 @@ export function CourseDetails() {
   const [lessons, setLessons] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [instructor, setInstructor] = useState(null);
+  const [instructorUnavailable, setInstructorUnavailable] = useState(false);
   const [error, setError] = useState(null);
   const [lessonsError, setLessonsError] = useState(null);
   const [expandedLesson, setExpandedLesson] = useState(null);
@@ -93,10 +93,16 @@ export function CourseDetails() {
         setLessonsError("Ainda não conseguimos listar as aulas para este curso.");
       });
 
-    // 2. Requisito 5: Instrutor aleatório da API Externa com seed fixa para cada curso
-    axios.get(`https://randomuser.me/api/?seed=course_${id}`).then(res => {
-      setInstructor(res.data.results[0]);
-    }).catch(err => console.error("Falha ao buscar instrutor", err));
+    // 2. Instrutor convidado (API externa randomuser.me). A busca passa pela
+    // API do CourseSphere, que aplica timeout, retry, circuit breaker e cache.
+    // Se a dependência estiver fora do ar, vem available: false e a página
+    // continua funcionando, só sem o card (degradação controlada).
+    api.get(`/courses/${id}/guest_instructor`)
+      .then(res => {
+        if (res.data.available) setInstructor(res.data.instructor);
+        else setInstructorUnavailable(true);
+      })
+      .catch(() => setInstructorUnavailable(true));
   }, [id]);
 
   if (error) return (
@@ -291,15 +297,21 @@ export function CourseDetails() {
             {instructor ? (
               <div className="instructor-profile">
                 <div className="avatar-container">
-                  <img src={instructor.picture.large} alt="Foto do Instrutor" className="instructor-avatar" />
+                  {instructor.picture_url && (
+                    <img src={instructor.picture_url} alt="Foto do Instrutor" className="instructor-avatar" />
+                  )}
                   <div className="online-indicator"></div>
                 </div>
-                <h4 className="instructor-name">{instructor.name.first} {instructor.name.last}</h4>
+                <h4 className="instructor-name">{instructor.name}</h4>
                 <p className="instructor-email">{instructor.email}</p>
                 <div className="instructor-bio">
                   <p>Especialista com anos de experiência no mercado, preparado para guiar você ao longo deste curso.</p>
                 </div>
               </div>
+            ) : instructorUnavailable ? (
+              <p style={{textAlign: 'center', color: 'var(--text-secondary)'}}>
+                Instrutor convidado indisponível no momento.
+              </p>
             ) : (
               <div className="loading-instructor">
                 <div className="spinner" style={{width: '30px', height: '30px', margin: '0 auto 1rem'}}></div>

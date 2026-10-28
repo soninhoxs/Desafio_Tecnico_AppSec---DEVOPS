@@ -106,3 +106,30 @@ spec:
                 values: [coursesphere-api, coursesphere-migrate]
       ports:
         - { protocol: TCP, port: 5432 }
+---
+# API -> dependência externa (randomuser.me, "instrutor convidado"): só HTTPS e
+# só para a internet. Faixas privadas, link-local (metadados da nuvem em
+# 169.254.169.254) e a rede do cluster continuam bloqueadas: mesmo um bug de
+# SSRF não alcançaria serviços internos. Em produção, prefira um egress proxy
+# ou política por FQDN (ex.: Cilium) liberando só randomuser.me.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-egress-external-https
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: coursesphere-api
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 169.254.0.0/16
+              - 100.64.0.0/10
+      ports:
+        - { protocol: TCP, port: 443 }

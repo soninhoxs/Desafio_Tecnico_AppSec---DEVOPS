@@ -8,29 +8,33 @@
 #   SLO-1  Disponibilidade do CRUD de cursos/aulas: 99,5% das requisições sem 5xx
 #   SLO-2  Latência do login: 99% dos POST /login em menos de 500 ms
 #   SLO-3  Latência de leitura do CRUD: 99% dos GET de cursos/aulas em menos de 250 ms
+#
+# A rota /courses/:id/guest_instructor fica FORA dos SLIs do CRUD: ela depende
+# de uma API externa (randomuser.me), responde sempre 200 com fallback e tem
+# monitoramento próprio (grupo coursesphere-dependencies).
 groups:
   - name: coursesphere-sli
     interval: 30s
     rules:
       # ---- SLI-1: taxa de erro (5xx) do CRUD ----
       - record: sli:crud_requests:rate5m
-        expr: sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[5m]))
+        expr: sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[5m]))
       - record: sli:crud_errors:rate5m
-        expr: sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[5m]))
+        expr: sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[5m]))
       - record: sli:crud_error_ratio:rate5m
         expr: sli:crud_errors:rate5m / clamp_min(sli:crud_requests:rate5m, 1e-9)
       - record: sli:crud_error_ratio:rate30m
         expr: |
-          sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[30m]))
-          / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[30m])), 1e-9)
+          sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[30m]))
+          / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[30m])), 1e-9)
       - record: sli:crud_error_ratio:rate1h
         expr: |
-          sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[1h]))
-          / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[1h])), 1e-9)
+          sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[1h]))
+          / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[1h])), 1e-9)
       - record: sli:crud_error_ratio:rate6h
         expr: |
-          sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",status=~"5.."}[6h]))
-          / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*"}[6h])), 1e-9)
+          sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[6h]))
+          / clamp_min(sum(rate(http_server_requests_total{job="coursesphere-api",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[6h])), 1e-9)
 
       # ---- SLI-2: login lento (> 500 ms) ----
       - record: sli:login_slow_ratio:rate5m
@@ -52,11 +56,11 @@ groups:
       - record: sli:crud_read_slow_ratio:rate5m
         expr: |
           1 - (
-            sum(rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*",le="0.25"}[5m]))
-            / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*"}[5m])), 1e-9)
+            sum(rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",le="0.25"}[5m]))
+            / clamp_min(sum(rate(http_server_request_duration_seconds_count{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[5m])), 1e-9)
           )
       - record: sli:crud_read_latency_p95:5m
-        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*"}[5m])))
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job="coursesphere-api",method="GET",route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[5m])))
 
   - name: coursesphere-slo-alerts
     rules:
@@ -151,3 +155,26 @@ groups:
           summary: "Pico de acessos negados (403): possível tentativa de IDOR/escalada"
           description: "{{ $value | humanize }} acessos negados por minuto."
           runbook: docs/runbooks/forca-bruta.md
+
+  - name: coursesphere-dependencies
+    rules:
+      - alert: ExternalDependencyCircuitOpen
+        expr: max by (dependency) (coursesphere_circuit_breaker_state{job="coursesphere-api"}) == 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker aberto para a dependência {{ $labels.dependency }}"
+          description: "A dependência externa falhou repetidamente; a API está servindo o fallback (card do instrutor convidado indisponível). O CRUD não é afetado."
+          runbook: docs/runbooks/dependencia-externa.md
+      - alert: ExternalDependencyFailing
+        expr: |
+          sum by (dependency) (rate(coursesphere_external_requests_total{job="coursesphere-api",outcome=~"failure|short_circuited"}[10m]))
+          / clamp_min(sum by (dependency) (rate(coursesphere_external_requests_total{job="coursesphere-api"}[10m])), 1e-9) > 0.5
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Mais da metade das chamadas a {{ $labels.dependency }} está falhando"
+          description: "Fração de falhas/curto-circuito nos últimos 10 min: {{ $value | humanizePercentage }}."
+          runbook: docs/runbooks/dependencia-externa.md

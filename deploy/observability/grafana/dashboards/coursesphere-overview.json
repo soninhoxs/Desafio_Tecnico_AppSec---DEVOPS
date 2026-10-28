@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "editable": false,
   "refresh": "10s",
   "time": {
@@ -64,7 +64,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "1 - (sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\",status=~\"5..\"}[30d])) / clamp_min(sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\"}[30d])), 1))",
+          "expr": "1 - (sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\",route!~\".*/guest_instructor\",status=~\"5..\"}[30d])) / clamp_min(sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\",route!~\".*/guest_instructor\"}[30d])), 1))",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -126,7 +126,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "1 - ((sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\",status=~\"5..\"}[30d])) / clamp_min(sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\"}[30d])), 1)) / 0.005)",
+          "expr": "1 - ((sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\",route!~\".*/guest_instructor\",status=~\"5..\"}[30d])) / clamp_min(sum(increase(http_server_requests_total{job=\"coursesphere-api\",route=~\"/courses.*|/lessons.*\",route!~\".*/guest_instructor\"}[30d])), 1)) / 0.005)",
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -839,6 +839,215 @@
               "mode": "none",
               "group": "A"
             }
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "row",
+      "title": "Dependência externa (randomuser.me) — timeout, retry e circuit breaker",
+      "id": 17,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "panels": []
+    },
+    {
+      "type": "state-timeline",
+      "title": "Circuit breaker por réplica",
+      "id": 18,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Verde = fechado (chamadas passam), amarelo = meio-aberto (testando), vermelho = aberto (falha rápido e serve o fallback).",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 41
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (instance) (coursesphere_circuit_breaker_state{job=\"coursesphere-api\",dependency=\"randomuser\"})",
+          "legendFormat": "{{instance}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "fechado",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "meio-aberto",
+                  "color": "yellow"
+                },
+                "2": {
+                  "text": "aberto",
+                  "color": "red"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "auto",
+        "mergeValues": true,
+        "rowHeight": 0.8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Chamadas à dependência por resultado (por minuto)",
+      "id": 19,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "success/cache_hit = normal; retry = erro transitório recuperado; failure = desistiu após o orçamento; short_circuited = disjuntor aberto (resposta imediata com fallback).",
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 41
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (rate(coursesphere_external_requests_total{job=\"coursesphere-api\",dependency=\"randomuser\"}[5m])) * 60",
+          "legendFormat": "{{outcome}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Latência da dependência (p50 / p95)",
+      "id": 20,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 41
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(coursesphere_external_request_duration_seconds_bucket{job=\"coursesphere-api\",dependency=\"randomuser\"}[5m])))",
+          "legendFormat": "p50",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(coursesphere_external_request_duration_seconds_bucket{job=\"coursesphere-api\",dependency=\"randomuser\"}[5m])))",
+          "legendFormat": "p95",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        },
+        {
+          "refId": "C",
+          "expr": "vector(2)",
+          "legendFormat": "teto por tentativa (2 s)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          }
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
           }
         },
         "overrides": []

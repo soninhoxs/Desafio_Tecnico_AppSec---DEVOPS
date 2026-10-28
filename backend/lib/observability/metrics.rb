@@ -47,6 +47,27 @@ module Observability
 
     UPTIME = REGISTRY.gauge(:coursesphere_uptime_seconds, docstring: "Segundos desde o boot desta réplica.")
 
+    # Dependências externas (ex.: randomuser.me) — ver GuestInstructorClient.
+    EXTERNAL_REQUESTS = REGISTRY.counter(
+      :coursesphere_external_requests_total,
+      docstring: "Chamadas a dependências externas por resultado " \
+                 "(success, retry, failure, short_circuited, cache_hit).",
+      labels: %i[dependency outcome]
+    )
+
+    EXTERNAL_DURATION = REGISTRY.histogram(
+      :coursesphere_external_request_duration_seconds,
+      docstring: "Latência de cada tentativa de chamada a uma dependência externa.",
+      labels: %i[dependency],
+      buckets: [ 0.05, 0.1, 0.25, 0.5, 1, 1.5, 2, 3 ]
+    )
+
+    CIRCUIT_BREAKER_STATE = REGISTRY.gauge(
+      :coursesphere_circuit_breaker_state,
+      docstring: "Estado do circuit breaker por dependência: 0 = fechado, 1 = meio-aberto, 2 = aberto.",
+      labels: %i[dependency]
+    )
+
     def self.render
       collect_runtime_gauges
       Prometheus::Client::Formats::Text.marshal(REGISTRY)
