@@ -1,6 +1,6 @@
 # Evidências da execução automática (E2E)
 
-Gerado automaticamente pelo workflow **E2E** em 2026-10-28 18:39 UTC, commit `463582c` — [execução no GitHub Actions](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/runs/40746468377).
+Gerado automaticamente pelo workflow **E2E** em 2026-10-28 18:54 UTC, commit `6c4d250` — [execução no GitHub Actions](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/runs/40748657506).
 Não edite à mão: cada push na `main` que passa no E2E substitui esta pasta.
 
 Ambiente: `docker compose` no runner do GitHub — Nginx na frente de **2 réplicas da API** (`api-1`, `api-2`),
@@ -37,8 +37,8 @@ Tokens JWT foram removidos dos arquivos (`<jwt-removido>`).
 - **VULN-05 — versão corrigida:** GET /rails/info/properties -> 404 (aberto: False); GET /lessons/999999999 -> 404 (stack trace na resposta: False)
 - **VULN-06 — versão original:** POST lesson com video_url=javascript:... -> 201
 - **VULN-06 — versão corrigida:** POST lesson com video_url=javascript:... -> 422
-- **VULN-08 — versão original:** mediana e-mail existente = 202 ms; e-mail inexistente = 4 ms
-- **VULN-08 — versão corrigida:** mediana e-mail existente = 186 ms; e-mail inexistente = 178 ms
+- **VULN-08 — versão original:** mediana e-mail existente = 226 ms; e-mail inexistente = 4 ms
+- **VULN-08 — versão corrigida:** mediana e-mail existente = 216 ms; e-mail inexistente = 218 ms
 - **VULN-09 — versão original:** POST /signup com senha 123456 -> 201
 - **VULN-09 — versão corrigida:** POST /signup com senha 123456 -> 422
 
@@ -59,18 +59,18 @@ Total de requisições atendidas por réplica, segundo o Prometheus:
 
 | Réplica | Requisições |
 |---|---|
-| api-1 | 69 |
-| api-2 | 67 |
+| api-1 | 72 |
+| api-2 | 69 |
 
 Trecho do log JSON do Nginx (o campo `upstream` mostra a réplica que atendeu):
 
 ```json
-{"ts":"2026-10-28T18:38:26+00:00","event":"lb_access","request_id":"d7ea4ba2d451f625fcdd4d4d782f54f8","remote_addr":"172.18.0.1","method":"GET","uri":"/dashboard","status":304,"bytes":0,"request_time":0.000,"upstream":"172.20.0.2:8080","upstream_status":"304","upstream_response_time":"0.001","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
-{"ts":"2026-10-28T18:38:26+00:00","event":"lb_access","request_id":"16c159ec0e255be2688632b926f8359c","remote_addr":"172.18.0.1","method":"GET","uri":"/api/me","status":200,"bytes":73,"request_time":0.004,"upstream":"172.18.0.5:3000","upstream_status":"200","upstream_response_time":"0.004","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
-{"ts":"2026-10-28T18:38:26+00:00","event":"lb_access","request_id":"12a852f277f6ef171fd606926437b3f0","remote_addr":"172.18.0.1","method":"GET","uri":"/api/courses","status":200,"bytes":1936,"request_time":0.005,"upstream":"172.18.0.6:3000","upstream_status":"200","upstream_response_time":"0.006","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
-{"ts":"2026-10-28T18:38:26+00:00","event":"lb_access","request_id":"f99bd7f26e74b527f513884005023713","remote_addr":"172.18.0.1","method":"GET","uri":"/api/courses/6","status":200,"bytes":211,"request_time":0.005,"upstream":"172.18.0.5:3000","upstream_status":"200","upstream_response_time":"0.005","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
-{"ts":"2026-10-28T18:38:26+00:00","event":"lb_access","request_id":"e8469f0117fdc3db1697137cd309690f","remote_addr":"172.18.0.1","method":"GET","uri":"/api/courses/6/lessons","status":200,"bytes":2,"request_time":0.020,"upstream":"172.18.0.6:3000","upstream_status":"200","upstream_response_time":"0.019","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
-{"ts":"2026-10-28T18:38:26+00:00","event":"lb_access","request_id":"d6a66d52d85fb9189bb7d859a1150d33","remote_addr":"172.18.0.1","method":"GET","uri":"/api/courses/6/guest_instructor","status":200,"bytes":163,"request_time":0.197,"upstream":"172.18.0.5:3000","upstream_status":"200","upstream_response_time":"0.197","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
+{"ts":"2026-10-28T18:53:24+00:00","event":"lb_access","request_id":"f15b314f0020f2209c47687280042475","remote_addr":"172.19.0.1","method":"GET","uri":"/dashboard","status":304,"bytes":0,"request_time":0.001,"upstream":"172.20.0.2:8080","upstream_status":"304","upstream_response_time":"0.001","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
+{"ts":"2026-10-28T18:53:24+00:00","event":"lb_access","request_id":"9d1f45ac85f212a6019fd1fee660dd5c","remote_addr":"172.19.0.1","method":"GET","uri":"/api/me","status":200,"bytes":73,"request_time":0.002,"upstream":"172.19.0.6:3000","upstream_status":"200","upstream_response_time":"0.002","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
+{"ts":"2026-10-28T18:53:24+00:00","event":"lb_access","request_id":"363361bc7db1472c3a7bdb61e2a0b0d9","remote_addr":"172.19.0.1","method":"GET","uri":"/api/courses","status":200,"bytes":1936,"request_time":0.003,"upstream":"172.19.0.5:3000","upstream_status":"200","upstream_response_time":"0.003","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
+{"ts":"2026-10-28T18:53:25+00:00","event":"lb_access","request_id":"150c5babf59b6dfb5a3c531ee2b813af","remote_addr":"172.19.0.1","method":"GET","uri":"/api/courses/6","status":200,"bytes":211,"request_time":0.004,"upstream":"172.19.0.6:3000","upstream_status":"200","upstream_response_time":"0.004","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
+{"ts":"2026-10-28T18:53:25+00:00","event":"lb_access","request_id":"04814e27962aecd48d31353b6387f441","remote_addr":"172.19.0.1","method":"GET","uri":"/api/courses/6/lessons","status":200,"bytes":2,"request_time":0.016,"upstream":"172.19.0.5:3000","upstream_status":"200","upstream_response_time":"0.016","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
+{"ts":"2026-10-28T18:53:25+00:00","event":"lb_access","request_id":"38bcfac6a20c7c20030b49d969357254","remote_addr":"172.19.0.1","method":"GET","uri":"/api/courses/6/guest_instructor","status":200,"bytes":163,"request_time":0.200,"upstream":"172.19.0.5:3000","upstream_status":"200","upstream_response_time":"0.199","user_agent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36"}
 ```
 
 ## 3. Tratamento de falhas da dependência externa (timeout, retry, circuit breaker)
@@ -79,16 +79,16 @@ Saída de `bin/rails runner script/resilience_drill.rb` dentro do container `api
 
 ```text
 == 1. Dependência disponível (chamada real à randomuser.me)
-  chamada 1:   1248 ms  origem=network  disponível=true
+  chamada 1:    152 ms  origem=network  disponível=true
   chamada 2:      0 ms  origem=cache    disponível=true
 
 == 2. Dependência fora do ar (IP sem resposta)
    timeouts: conexão 0.5s, leitura 1.5s; 3 tentativas; orçamento 3.0s; disjuntor abre com 5 falhas seguidas e fica aberto 30s
-  requisição 1:   2090 ms  resultado=error         disponível=false disjuntor=closed
-  requisição 2:   2032 ms  resultado=error         disponível=false disjuntor=closed
-  requisição 3:   2255 ms  resultado=error         disponível=false disjuntor=closed
-  requisição 4:   2187 ms  resultado=error         disponível=false disjuntor=closed
-  requisição 5:   1990 ms  resultado=error         disponível=false disjuntor=open
+  requisição 1:   2123 ms  resultado=error         disponível=false disjuntor=closed
+  requisição 2:   1967 ms  resultado=error         disponível=false disjuntor=closed
+  requisição 3:   2262 ms  resultado=error         disponível=false disjuntor=closed
+  requisição 4:   1967 ms  resultado=error         disponível=false disjuntor=closed
+  requisição 5:   2173 ms  resultado=error         disponível=false disjuntor=open
   requisição 6:      0 ms  resultado=circuit_open  disponível=false disjuntor=open
   requisição 7:      0 ms  resultado=circuit_open  disponível=false disjuntor=open
   requisição 8:      0 ms  resultado=circuit_open  disponível=false disjuntor=open
@@ -116,12 +116,12 @@ disjuntor abrir; a partir daí a resposta é imediata (fallback) e as threads do
 ```http
 HTTP/1.1 200 OK
 Server: nginx
-Date: Wed, 28 Oct 2026 18:39:33 GMT
+Date: Wed, 28 Oct 2026 18:54:34 GMT
 Content-Type: text/html
 Content-Length: 465
 Connection: keep-alive
-Last-Modified: Wed, 28 Oct 2026 18:35:32 GMT
-ETag: "6ae24074-1d1"
+Last-Modified: Wed, 28 Oct 2026 18:50:03 GMT
+ETag: "6ae243db-1d1"
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://randomuser.me; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 X-Content-Type-Options: nosniff
