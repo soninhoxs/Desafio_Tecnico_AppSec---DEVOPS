@@ -14,7 +14,7 @@ components:
 images:
 - name: ghcr.io/coursesphere/coursesphere-api
   newName: ghcr.io/soninhoxs/coursesphere-api
-  newTag: sha-56824cbb90a6
+  newTag: sha-28a42614e348
 - name: ghcr.io/coursesphere/coursesphere-frontend
   newName: ghcr.io/soninhoxs/coursesphere-frontend
-  newTag: sha-56824cbb90a6
+  newTag: sha-28a42614e348
