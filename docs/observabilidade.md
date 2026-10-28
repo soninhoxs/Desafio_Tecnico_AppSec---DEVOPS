@@ -39,8 +39,13 @@ Exemplo de evento de segurança:
 | `coursesphere_db_pool_connections` | gauge | `state` (size/busy/idle/waiting/dead) | saturação do banco |
 | `coursesphere_app_info` | gauge | `version`, `instance` | versão em execução por réplica |
 | `coursesphere_uptime_seconds` | gauge | — | reinícios |
+| `coursesphere_external_requests_total` | counter | `dependency`, `outcome` (`success`, `retry`, `failure`, `short_circuited`, `cache_hit`) | chamadas à dependência externa (`randomuser`) |
+| `coursesphere_external_request_duration_seconds` | histogram | `dependency` | latência das tentativas que receberam resposta (teto de 2 s por tentativa) |
+| `coursesphere_circuit_breaker_state` | gauge | `dependency` | estado do disjuntor da réplica: 0 fechado, 1 meio-aberto, 2 aberto |
 
 `route` é o **padrão** da rota (`/courses/:id`), nunca o caminho com IDs. Assim a cardinalidade fica baixa.
+
+Eventos de log da dependência externa: `external.request_failed` (com `error_class` e `error_message`) e `circuit_breaker.state_change` (`dependency`, `from`, `to`).
 
 ## 2. SLIs e SLOs
 
@@ -54,16 +59,22 @@ Janela: **30 dias corridos**.
 
 **Por que essas metas.** Para um sistema acadêmico de um único banco, 99,5% é realista sem multi-região, e indisponibilidade de alguns minutos não causa perda de dados. O login tem meta própria porque o bcrypt (≈250 ms) já consome metade do limite de 500 ms: qualquer degradação de CPU aparece primeiro aí.
 
+**O que fica fora do SLI do CRUD.** A rota `/courses/:course_id/guest_instructor` (card do instrutor convidado) depende de um terceiro e já tem fallback. Uma falha da `randomuser.me` não deve consumir o orçamento de erro da função principal, então ela é excluída dos SLIs 1 e 3 (`route!~".*/guest_instructor"`) e tem alertas próprios (seção 3).
+
 ### PromQL (recording rules em `deploy/observability/prometheus/rules/coursesphere.rules.yml`)
 
 ```promql
 # SLI-1: fração de erro (5xx) do CRUD em 5 min
-sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*",status=~"5.."}[5m]))
-/ sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*"}[5m]))
+sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[5m]))
+/ sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[5m]))
 
 # SLO-1 atingido nos últimos 30 dias (Grafana)
-1 - sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*",status=~"5.."}[30d]))
-  / sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*"}[30d]))
+1 - sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[30d]))
+  / sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[30d]))
+
+# Dependência externa: fração de chamadas que falharam ou foram barradas pelo disjuntor
+sum(rate(coursesphere_external_requests_total{outcome=~"failure|short_circuited"}[10m]))
+/ sum(rate(coursesphere_external_requests_total[10m]))
 
 # SLI-2: fração de logins acima de 500 ms
 1 - sum(rate(http_server_request_duration_seconds_bucket{route="/login",le="0.5"}[5m]))
@@ -88,6 +99,8 @@ Os alertas de SLO usam **burn rate multi-janela** (Google SRE Workbook, cap. 5):
 | `PossibleBruteForce` | > 30 falhas de login/min por 5 min | warning | [forca-bruta](runbooks/forca-bruta.md) |
 | `AccountsBeingLocked` | > 5 contas bloqueadas em 15 min | warning | [forca-bruta](runbooks/forca-bruta.md) |
 | `AccessDeniedSpike` | > 20 respostas 403/min por 5 min | info | [forca-bruta](runbooks/forca-bruta.md) |
+| `ExternalDependencyCircuitOpen` | disjuntor aberto em alguma réplica por 5 min | warning | [dependencia-externa](runbooks/dependencia-externa.md) |
+| `ExternalDependencyFailing` | > 50% das chamadas à dependência falhando ou barradas pelo disjuntor em 10 min, por 10 min | info | [dependencia-externa](runbooks/dependencia-externa.md) |
 
 `ApiAllInstancesDown` inibe `ApiInstanceDown`, para não repetir o mesmo problema em vários alertas.
 
@@ -101,6 +114,9 @@ O dashboard **"CourseSphere — SLOs, tráfego e segurança"** é provisionado a
 | **Tráfego e balanceamento** | requisições/s **por réplica** (as linhas de api-1 e api-2 caminham juntas = balanceamento funcionando), requisições/s por status | SRE |
 | **Erros e latência** | taxa de 5xx do CRUD com a linha do SLO, p95 por rota, login p50/p95/p99, requisições em andamento e pool do banco | SRE / dev |
 | **Segurança** | eventos por tipo (login_failure, account_locked, rate_limited, access_denied, token_rejected), respostas 401/403/429 | segurança |
+| **Dependência externa (randomuser.me)** | estado do circuit breaker por réplica (linha do tempo: fechado / meio-aberto / aberto), chamadas por resultado por minuto, latência p50/p95 com a linha do teto de 2 s | SRE / plantão |
+
+Um print do dashboard, tirado pelo E2E com o ambiente no ar, fica em [`docs/evidencias/execucao/grafana-dashboard.png`](evidencias/execucao/grafana-dashboard.png).
 
 Logs (Kubernetes): no Grafana → *Explore* → fonte **Loki**, ex.: `{namespace="coursesphere", app="coursesphere-api"} | json | event="security.login_failure"`.
 
@@ -110,3 +126,5 @@ Logs (Kubernetes): no Grafana → *Explore* → fonte **Loki**, ex.: `{namespace
 python scripts/lb_demo.py -n 200                      # tráfego distribuído entre as réplicas
 python security/poc/poc.py --base-url http://localhost:8080/api   # gera eventos de segurança
 ```
+
+Para a linha "Dependência externa", abra a página de alguns cursos na aplicação. Cada curso novo é uma chamada à `randomuser.me`, e as repetidas vêm do cache. O exercício de falha (`docker compose exec -T api-1 bin/rails runner script/resilience_drill.rb`) roda num processo à parte, com disjuntor próprio. Ele mostra o comportamento no terminal, mas não mexe no disjuntor das réplicas que atendem o tráfego.

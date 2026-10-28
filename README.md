@@ -1,5 +1,10 @@
 # CourseSphere — Desafio AppSec & SRE
 
+[![CI](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/ci.yml)
+[![Security](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/security.yml)
+[![E2E](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/e2e.yml/badge.svg?branch=main)](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/e2e.yml)
+[![CD](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/cd.yml/badge.svg?branch=main)](https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/actions/workflows/cd.yml)
+
 Análise de segurança, correções, hardening, observabilidade e infraestrutura (Docker, Kubernetes, Terraform, GitOps) da aplicação **CourseSphere** (Ruby on Rails 8.1 + React 19, gestão de cursos e aulas).
 
 > A aplicação original é de [PauloV1/CourseSphere-Full-Stack](https://github.com/PauloV1/CourseSphere-Full-Stack) (licença MIT). O histórico original foi preservado, e a versão analisada está na tag **`v0-original`**. Todas as mudanças deste trabalho vêm depois dela, em commits separados por assunto.
@@ -11,11 +16,12 @@ Análise de segurança, correções, hardening, observabilidade e infraestrutura
 | **Vulnerabilidades encontradas** | **9** (3 Altas, 4 Médias, 2 Baixas no contexto) — todas **corrigidas**, com testes automatizados e PoC |
 | **Dependências vulneráveis** | gems: **30 → 0** · npm: **14 → 0** |
 | **Hardening** | rate limit em 3 camadas, CSP/HSTS e outros headers, JWT endurecido com revogação, containers non-root/read-only, Pod Security, NetworkPolicies, Kyverno, imagens assinadas |
-| **Confiabilidade** | Nginx balanceando **2 réplicas** da API, health checks, logs JSON, métricas Prometheus, **3 SLOs** com alertas de burn rate, dashboard Grafana, runbooks |
+| **Confiabilidade** | Nginx balanceando **2 réplicas** da API, health checks, logs JSON, métricas Prometheus, **3 SLOs** com alertas de burn rate, dashboard Grafana, runbooks · dependência externa com **timeout, retry, circuit breaker, cache e fallback** |
 | **Plataforma** | **Terraform** cria cluster kind + **ArgoCD** (app-of-apps) · pipeline **CI/CD** com SAST/SCA/DAST e deploy GitOps |
+| **Evidências** | resultados **reais** do CI versionados em [`docs/evidencias/execucao/`](docs/evidencias/execucao/): PoC original × corrigido, balanceamento por réplica, exercício de falha, ZAP e **prints** da aplicação e do Grafana |
 
 📄 **Relatório completo (pentest + confiabilidade):** [`docs/RELATORIO.md`](docs/RELATORIO.md)
-🧭 Modelagem de ameaças (STRIDE + DFD): [`docs/threat-model.md`](docs/threat-model.md) · 📈 SLOs e observabilidade: [`docs/observabilidade.md`](docs/observabilidade.md) · 🧯 Runbooks: [`docs/runbooks/`](docs/runbooks/)
+🧭 Modelagem de ameaças (STRIDE + DFD): [`docs/threat-model.md`](docs/threat-model.md) · 📈 SLOs e observabilidade: [`docs/observabilidade.md`](docs/observabilidade.md) · 🧯 Runbooks: [`docs/runbooks/`](docs/runbooks/) · 🔐 Política de segurança: [`SECURITY.md`](SECURITY.md) · ✅ Verificação passo a passo: [`docs/VERIFICACAO.md`](docs/VERIFICACAO.md)
 
 | ID | Vulnerabilidade | Severidade | Correção |
 |---|---|---|---|
@@ -31,6 +37,31 @@ Análise de segurança, correções, hardening, observabilidade e infraestrutura
 
 ---
 
+## O que mudou nesta revisão
+
+Revisão feita item a item contra o edital do desafio. O que faltava ou estava fraco:
+
+| Melhoria | Item do edital atendido | Onde |
+|---|---|---|
+| **Evidências reais publicadas no repositório.** A cada push na `main` que passa no E2E, o CI grava em `docs/evidencias/execucao/` o PoC da versão original × corrigida (requisição → resposta), a distribuição do balanceador por réplica, o log JSON do Nginx, métricas do Prometheus, o exercício de falha, o resumo do OWASP ZAP e **prints** da aplicação e do dashboard. Antes isso existia só como artefato do Actions, que exige login e expira em 90 dias. Tokens JWT são removidos antes do commit. | 5 ("print ou log mostrando requests atendidas por instâncias diferentes"), 6 (evidências: prints, logs, requests/responses), reprodutibilidade | [`docs/evidencias/execucao/`](docs/evidencias/execucao/), `.github/workflows/e2e.yml` (job `publish`), `scripts/ci/` |
+| **Tratamento de falhas na dependência externa.** O card "Instrutor convidado" chamava a `randomuser.me` direto do navegador, sem proteção. Agora a chamada passa pela API com timeout curto (teto de 2 s por tentativa), retry com backoff + jitter só para erro transitório (orçamento de 3 s), **circuit breaker** (abre com 5 falhas, testa a cada 30 s), cache de 24 h e fallback (a página continua funcionando). | Diferencial: "tratamento de falhas (timeout, retry, circuit breaker)" | `backend/app/services/`, `GET /api/courses/:id/guest_instructor`, [runbook](docs/runbooks/dependencia-externa.md) |
+| **Observabilidade da dependência:** métricas de chamadas, latência e estado do disjuntor, linha nova no dashboard, alertas `ExternalDependencyCircuitOpen`/`ExternalDependencyFailing` e exercício de falha (`script/resilience_drill.rb`) que roda dentro do container no E2E. | 4 (métricas, dashboard) | `backend/lib/observability/metrics.rb`, `deploy/observability/` |
+| **Segurança da mudança:** URL fixa (sem SSRF), resposta reduzida a nome/e-mail/foto, CSP `connect-src 'self'` (o JavaScript do navegador não chama mais terceiros; só a foto ainda vem da `randomuser.me`) e NetworkPolicy que libera só HTTPS para a internet, bloqueando redes privadas e o endereço de metadados da nuvem. | 3 (hardening) | `guest_instructor_client.rb`, `frontend/nginx/security-headers.conf`, `deploy/k8s/base/network-policies.yaml` |
+| **Política de segurança (`SECURITY.md`).** A aba Security do GitHub indicava "No security policy detected". Agora define canal privado de reporte, prazos por severidade e regras para testes. | Postura de segurança | [`SECURITY.md`](SECURITY.md) |
+| **Alerta do Code scanning fechado.** A regra Semgrep de regex de URI passou a valer só para `backend/`: o script de evidência da VULN-06 usa a regex antiga de propósito. | 7 (SAST no repositório) | `security/semgrep/coursesphere.yml` |
+| **19 testes novos** (circuit breaker, cliente da dependência com transporte falso, endpoint). | Diferencial: testes automatizados | `backend/test/services/`, `backend/test/controllers/guest_instructors_controller_test.rb` |
+
+**O que o próprio pipeline pegou** (e foi corrigido) desde a primeira execução no GitHub. É a evidência de que os gates funcionam:
+
+- O **gate do Trivy na imagem** reprovou o deploy por **CVE-2026-33210 (CRITICAL)** na gem `json` 2.18.0 que vem *dentro* do Ruby 4.0.9. O lockfile já usava a versão corrigida, mas a gem padrão continuava na imagem. Também pegou pacotes do sistema operacional com correção publicada depois da tag da imagem base (resolvido com `apt-get upgrade`/`apk upgrade` no build).
+- O **E2E** pegou três falhas que só aparecem em produção: um initializer chamava um logger que a API não carrega (`NameError` no boot), o `tmpfs` nascia `root:755` e o processo (uid 10001) não criava `tmp/pids`, e o healthcheck usava `wget` numa imagem que só tem `curl`.
+- O **CI** pegou divergência entre as migrations e o `db/schema.rb`, e a falta da biblioteca `active_job` no eager load do Solid Cache.
+- O **Trivy config** levou a: namespace explícito nos workloads, frontend com uid > 10000 e `Host` fixo no proxy (o cliente não escolhe mais o cabeçalho que a API recebe).
+
+Detalhes e como reproduzir cada verificação: [`docs/VERIFICACAO.md`](docs/VERIFICACAO.md).
+
+---
+
 ## Arquitetura
 
 ```mermaid
@@ -40,6 +71,7 @@ flowchart LR
   LB -->|/api/* round-robin| A1[api-1]
   LB --> A2[api-2]
   A1 & A2 --> DB[(PostgreSQL)]
+  A1 & A2 -->|HTTPS · timeout, retry, circuit breaker, cache| EXT[(randomuser.me)]
   PR[Prometheus] --> A1 & A2
   GR[Grafana] --> PR
 ```
@@ -82,6 +114,14 @@ Distribuição:
 ```
 A mesma evidência aparece no log JSON do balanceador (`docker compose logs lb`, campo `upstream`) e no painel **"Requisições/s por réplica"** do Grafana.
 
+### Demonstrar o tratamento de falhas (circuit breaker)
+
+```bash
+docker compose exec -T api-1 bin/rails runner script/resilience_drill.rb
+```
+
+O exercício chama a `randomuser.me` de verdade (a segunda chamada vem do cache). Depois simula a dependência **fora do ar** (um IP que não responde): cada requisição fica limitada ao orçamento de tempo até o disjuntor abrir, e daí em diante a resposta é **imediata**, com fallback. Assim as threads da API não ficam presas esperando timeout. O resultado da última execução no CI está em [`docs/evidencias/execucao/`](docs/evidencias/execucao/). O exercício roda num processo à parte, com disjuntor próprio, e não interfere nas réplicas que atendem o tráfego. Com tráfego real, a linha **"Dependência externa"** do Grafana mostra o estado do disjuntor de cada réplica.
+
 ---
 
 ## Como reproduzir os achados
@@ -112,7 +152,23 @@ Saída esperada na versão corrigida (resumo):
 ...
 ```
 
-Passos manuais com `curl` para cada achado estão no [relatório](docs/RELATORIO.md#4-achados-detalhados). No GitHub Actions, o workflow **E2E** roda o PoC nas duas versões a cada push e publica a saída como artefato (`evidencias-versao-original` / `evidencias-versao-corrigida`).
+Passos manuais com `curl` para cada achado estão no [relatório](docs/RELATORIO.md#4-achados-detalhados). No GitHub Actions, o workflow **E2E** roda o PoC nas duas versões a cada push. Na `main`, a saída é publicada no próprio repositório (próxima seção).
+
+---
+
+## Evidências da execução real
+
+[`docs/evidencias/execucao/`](docs/evidencias/execucao/) é gerada automaticamente pelo CI. O [`README`](docs/evidencias/execucao/README.md) da pasta resume:
+
+- **PoC:** tabela da versão original × corrigida, com a requisição e a resposta de cada teste;
+- **Balanceamento:** distribuição entre `api-1` e `api-2` (header `X-Served-By`, log JSON do Nginx e contagem por réplica no Prometheus);
+- **Resiliência:** saída do exercício de falha do circuit breaker;
+- **Segurança:** cabeçalhos de segurança e resumo do OWASP ZAP baseline;
+- **Prints:** a aplicação (lista de cursos e página do curso com o card do instrutor) e o dashboard do Grafana.
+
+![Dashboard do Grafana na execução do CI](docs/evidencias/execucao/grafana-dashboard.png)
+
+Resultados das ferramentas de SAST/SCA antes e depois das correções: [`docs/evidencias/baseline/`](docs/evidencias/baseline/) e [`docs/evidencias/depois/`](docs/evidencias/depois/).
 
 ---
 
@@ -131,7 +187,9 @@ Passos manuais com `curl` para cada achado estão no [relatório](docs/RELATORIO
 | **kubeconform / helm / kustomize** | Validação dos manifests e charts do ArgoCD | `python scripts/validate_gitops.py` | `ci.yml` |
 | **promtool** | Regras e alertas do Prometheus | `promtool check rules deploy/observability/prometheus/rules/*.yml` | `ci.yml` |
 | **Terraform** | Validação da IaC | `cd deploy/terraform/kind && terraform init -backend=false && terraform validate` | `ci.yml` |
-| **Minitest** | Testes (incl. autorização) | `cd backend && bin/rails test` (precisa de PostgreSQL) | `ci.yml` |
+| **Minitest** | Testes (incl. autorização e circuit breaker) | `cd backend && bin/rails test` (precisa de PostgreSQL) | `ci.yml` |
+| **Exercício de falha** | Circuit breaker com a dependência fora do ar | `docker compose exec -T api-1 bin/rails runner script/resilience_drill.rb` | `e2e.yml` |
+| **Playwright** | Prints da aplicação e do Grafana (evidência visual) | `pip install playwright==1.64.0 && python -m playwright install chromium && python scripts/ci/capture_screenshots.py --out out` | `e2e.yml` |
 
 Resultados das ferramentas antes/depois: [`docs/evidencias/`](docs/evidencias/).
 
@@ -168,7 +226,7 @@ Destruir: `terraform destroy -var repo_url=...`.
 | `ci.yml` | push/PR | testes Rails + PostgreSQL, RuboCop, ESLint + build, validação de Terraform/K8s/ArgoCD/Prometheus/compose |
 | `security.yml` | push/PR + semanal | Semgrep, Brakeman, bundler-audit, npm audit, Trivy (fs/config), Gitleaks |
 | `cd.yml` | push na `main` | banco do Trivy no GHCR (cache por digest) → build → **Trivy na imagem (gate)** → SBOM → push GHCR → **assinatura cosign** → commit da nova tag no overlay → **ArgoCD faz o deploy** |
-| `e2e.yml` | push/PR | compose da versão corrigida (balanceamento + PoC + ZAP) e da `v0-original` (PoC deve mostrar as falhas) |
+| `e2e.yml` | push/PR | compose da versão corrigida (balanceamento + PoC + exercício de falha + ZAP + prints) e da `v0-original` (PoC deve mostrar as falhas); na `main`, publica tudo em `docs/evidencias/execucao/` |
 | `k8s-e2e.yml` | manual + semanal | Terraform cria o kind, ArgoCD sincroniza deste repositório, smoke test + PoC via ingress |
 
 Todas as actions são fixadas por **SHA de commit** e as ferramentas baixadas com **SHA-256 verificado**.
@@ -183,13 +241,14 @@ O passo a passo para rodar a mesma verificação na máquina (testes Rails, sche
 |---|---|
 | **Infraestrutura** — ambientes, cluster, rede, armazenamento | `docker-compose.yml`, `deploy/terraform/kind`, `deploy/k8s` (NetworkPolicies, PVC, HPA, PDB) |
 | **Automações** — build, teste, deploy, CI/CD | `.github/workflows`, `scripts/`, `deploy/argocd` (GitOps) |
-| **Observabilidade** — monitoramento, logs, alertas, incidentes | `backend/lib/observability`, `deploy/observability`, `docs/observabilidade.md`, `docs/runbooks` |
-| **Segurança** — scan de imagens, políticas, segredos | correções (`backend/`), `security/`, `deploy/policies` (Kyverno), Trivy/cosign no CD, segredos via Terraform/.env |
+| **Observabilidade** — monitoramento, logs, alertas, incidentes | `backend/lib/observability`, `deploy/observability`, `docs/observabilidade.md`, `docs/runbooks`, circuit breaker da dependência externa |
+| **Segurança** — scan de imagens, políticas, segredos | correções (`backend/`), `security/`, `deploy/policies` (Kyverno), Trivy/cosign no CD, segredos via Terraform/.env, `SECURITY.md` |
 
 ## Estrutura do repositório
 
 ```text
-backend/                 API Rails (correções, testes, lib/observability)
+SECURITY.md              política de segurança (como reportar vulnerabilidades)
+backend/                 API Rails (correções, testes, lib/observability, services/ com o circuit breaker)
 frontend/                React + Nginx (CSP e headers)
 deploy/
   compose/               Nginx (balanceador) e init do PostgreSQL
@@ -201,8 +260,9 @@ deploy/
 security/
   poc/poc.py             provas de conceito
   semgrep/               regras próprias
-docs/                    relatório, verificação, STRIDE, SLOs, runbooks, evidências
-scripts/                 bootstrap do .env, demo do LB, validação, CI
+docs/                    relatório, verificação, STRIDE, SLOs, runbooks
+  evidencias/            baseline/ e depois/ (SAST/SCA) · execucao/ (gerada pelo CI)
+scripts/                 bootstrap do .env, demo do LB, validação, CI (evidências e prints)
 .github/workflows/       CI, segurança, CD, E2E
 ```
 

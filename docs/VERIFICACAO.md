@@ -9,13 +9,14 @@ O relatório de segurança (achados, severidade, causa raiz) continua em [`RELAT
 | Suíte | Prova | Onde |
 |---|---|---|
 | Schema | As migrations e o `db/schema.rb` descrevem o mesmo banco. Um clone novo sobe igual ao de quem desenvolveu. | `ci.yml` → job Backend testes |
-| Minitest | Autorização, logout, força bruta, senha, URL de vídeo e health/métricas. | `backend/test/` |
+| Minitest | Autorização, logout, força bruta, senha, URL de vídeo, health/métricas e o tratamento de falhas da dependência externa (circuit breaker, retry, fallback). | `backend/test/` |
 | RuboCop | O Ruby segue o estilo do projeto. Não é teste de segurança. | `backend/.rubocop.yml` |
 | ESLint + build | O frontend compila e o lint de segurança/React passa. | `frontend/` |
 | IaC | Terraform, charts do ArgoCD, regras Prometheus e o compose são válidos **sem** subir cluster. | `scripts/validate_gitops.py` |
 | SAST/SCA | Semgrep, Brakeman, bundler-audit, npm audit, Trivy no código, Gitleaks. | `security.yml` |
-| E2E corrigido | O compose sobe, as duas réplicas recebem tráfego, os PoCs saem `CORRIGIDO` e o ZAP roda. | `e2e.yml` job `fixed` |
+| E2E corrigido | O compose sobe, as duas réplicas recebem tráfego, os PoCs saem `CORRIGIDO`, o exercício de falha abre o disjuntor, o ZAP roda e os prints da aplicação e do Grafana são tirados. | `e2e.yml` job `fixed` |
 | E2E original | Na tag `v0-original` os mesmos PoCs saem `VULNERÁVEL`. É a evidência de que o achado existia. | `e2e.yml` job `original` |
+| Publicação | Na `main`, com os dois jobs acima verdes, o bot grava o resultado em `docs/evidencias/execucao/`: tokens JWT removidos, commit com `[skip ci]`. | `e2e.yml` job `publish` |
 | CD | A imagem final (não o código-fonte) não tem CVE HIGH/CRITICAL com correção disponível. | `cd.yml` |
 | K8s E2E | Terraform + ArgoCD sobem o cluster e o PoC passa pelo ingress. Manual e semanal. | `k8s-e2e.yml` |
 
@@ -58,6 +59,9 @@ Saída esperada dos testes: todos os arquivos em `backend/test/` verdes, inclusi
 - `brute_force_protection_test.rb` — bloqueio depois de tentativas (VULN-03)
 - `user_test.rb` e o signup — senha curta ou comum é rejeitada (VULN-09)
 - `lesson_test.rb` — `javascript:` é rejeitado (VULN-06)
+- `circuit_breaker_test.rb` — abre depois de 5 falhas seguidas e falha rápido, um sucesso zera a contagem, depois do cooldown deixa passar uma única chamada de teste, que fecha ou reabre o disjuntor (relógio injetado, sem `sleep`)
+- `guest_instructor_client_test.rb` — retry só em erro transitório, limite de tentativas, 4xx sem retry, disjuntor aberto não toca na rede, cache, URL fixa e resposta reduzida a nome, e-mail e foto (transporte falso: os testes não usam a rede)
+- `guest_instructors_controller_test.rb` — exige login, curso inexistente dá 404, dependência fora do ar responde `200 {"available": false}` e não 5xx
 
 O seed no ambiente de teste **não** usa senha padrão. Sem `DEMO_USER_PASSWORD`, ele gera uma senha aleatória e imprime no log. Em produção o seed só roda com `ALLOW_DEMO_SEED=true`.
 
@@ -82,6 +86,9 @@ docker compose up -d --build
 python scripts/wait_for_http.py http://localhost:8080/api/health --timeout 480
 python scripts/lb_demo.py -n 20
 python security/poc/poc.py --base-url http://localhost:8080/api --expect fixed
+docker compose exec -T api-1 bin/rails runner script/resilience_drill.rb
+# prints (opcional): pip install playwright==1.64.0 && python -m playwright install chromium
+python scripts/ci/capture_screenshots.py --out out
 ```
 
 O que tem que aparecer:
@@ -89,6 +96,10 @@ O que tem que aparecer:
 1. `wait_for_http` termina com HTTP 200 em `/api/health`.
 2. `lb_demo.py` mostra `x-served-by=api-1` **e** `api-2`. Se só uma réplica aparecer, o balanceador ou o health da outra réplica falhou.
 3. O PoC imprime `CORRIGIDO` ou `PROTEGIDO` em todos os casos. Qualquer `VULNERÁVEL` é falha.
+4. O exercício de falha mostra, na parte 1, duas chamadas reais com `disponível=true` (a segunda com `origem=cache`). Na parte 2, com a dependência fora do ar, as primeiras requisições levam no máximo ~3 s (o orçamento). A partir da 5ª falha o disjuntor fica `open`, e as requisições seguintes respondem em ~0 ms com `resultado=circuit_open`.
+5. `out/` recebe `app-cursos.png`, `app-curso-instrutor.png` e `grafana-dashboard.png`.
+
+O exercício usa clientes próprios, então não altera o disjuntor nem o cache das réplicas. No Windows com Ruby nativo, o `connect` não respeitou o timeout de conexão nos testes locais (cada tentativa esperou ~21 s, o padrão do sistema). Meça no container Linux, como o E2E faz.
 
 O `docker compose up` desta versão espera o serviço `migrate` terminar com sucesso antes de subir as duas réplicas. Se ele sai com erro, o job morre em cerca de um minuto, bem antes do timeout de 480s do `wait_for_http`. As causas que já derrubaram esse passo:
 
@@ -149,6 +160,9 @@ Status 0 nos dois comandos é o mesmo critério do CD.
 | Frontend — lint e build | ESLint | regra de React ou de segurança no `frontend/src`. |
 | E2E versão corrigida, "Sobe o ambiente" | `docker compose logs migrate` (o workflow imprime as últimas 200 linhas) | `service "migrate" didn't complete successfully`. `mkdir: Permission denied` em `tmp/pids` é o tmpfs de `/rails/tmp` como root:755 (o processo é uid 10001). `NameError` em initializer só aparece em produção. Frontend `unhealthy` é probe com binário que a imagem não tem. |
 | E2E versão corrigida, PoC | a linha `VULNERÁVEL` | a correção regrediu. O ID no PoC aponta o achado no relatório. |
+| E2E versão corrigida, exercício de falha (não bloqueia o job) | `resiliencia-circuit-breaker.txt` no artefato | parte 1 com `disponível=false`: o runner ficou sem saída para a internet ou a `randomuser.me` caiu. Disjuntor que não abre na parte 2 é regressão do `CircuitBreaker`, e os testes do Minitest também devem falhar. |
+| E2E versão corrigida, prints (não bloqueia o job) | o traceback do Playwright no log | um seletor da tela mudou (`.course-card`, `.instructor-widget`) ou o Grafana pediu login. |
+| E2E, "Publica as evidências" | o `git push` no log | outro commit chegou na `main` durante o job (o passo tenta `pull --rebase` 5 vezes) ou uma regra de proteção da branch bloqueia o bot. |
 | E2E versão original | um caso `CORRIGIDO` quando o esperado era falha | a tag `v0-original` foi movida, ou o PoC mudou e não distingue mais as duas versões. |
 | CD, gate do Trivy | a tabela HIGH/CRITICAL da imagem, não o `npm audit` | pacote do SO (`apt`/`apk`) ou gem padrão do Ruby que o lockfile não substitui. CVE sem versão corrigida não reprova (`--ignore-unfixed`). |
 | CD, Banco de vulnerabilidades | o `oras copy` e o digest | o mirror público mudou e a publicação no GHCR falhou. Se a cópia já existe, o job segue com ela. A barra de ~130 MiB no **gate** é cache frio (primeiro deploy daquele digest), não a imagem da aplicação. |
@@ -169,7 +183,7 @@ Isso renderiza os charts do app-of-apps com os valores reais e passa kubeconform
 1. Schema + Minitest + RuboCop (seção 3).
 2. Lint e build do frontend (seção 4).
 3. `python scripts/validate_gitops.py` se mexeu em `deploy/`.
-4. Compose + PoC (seção 5) se mexeu em API, Nginx, Dockerfile ou seed.
+4. Compose + PoC + exercício de falha (seção 5) se mexeu em API, Nginx, Dockerfile ou seed.
 5. Trivy nas duas imagens (seção 6) se mexeu em Dockerfile ou lockfile.
 
 O CI repete 1, 2 e 3 em todo push. O E2E repete 4. O CD repete 6 na `main`.

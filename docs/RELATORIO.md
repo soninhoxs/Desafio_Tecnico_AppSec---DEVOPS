@@ -49,7 +49,7 @@ O controle de acesso principal ("um usuário não edita o curso de outro") **já
 - Dependências (Gemfile.lock, package-lock.json) e imagens base.
 
 **Fora de escopo**
-- API externa `randomuser.me` (só o *uso* dela pelo frontend foi avaliado).
+- A API externa `randomuser.me` em si. Só a *integração* com ela foi avaliada (desde esta revisão, a chamada passa pela API com timeout, retry e circuit breaker: seção 8.7).
 - Negação de serviço volumétrica, engenharia social e infraestrutura de nuvem real (não existia).
 
 **Regras de engajamento:** todos os testes dinâmicos foram feitos contra instâncias locais criadas para isso (docker compose, kind), com usuários criados pelo próprio teste.
@@ -92,7 +92,7 @@ O controle de acesso principal ("um usuário não edita o curso de outro") **já
 
 > **Como reproduzir tudo de uma vez:** suba a versão original (`git checkout v0-original && docker compose up -d --build`) e rode
 > `python security/poc/poc.py --base-url http://localhost:3000`. Na versão corrigida:
-> `python security/poc/poc.py --base-url http://localhost:8080/api`. O workflow **E2E** do GitHub Actions faz as duas execuções e publica a saída como artefato (`evidencias-versao-original` e `evidencias-versao-corrigida`).
+> `python security/poc/poc.py --base-url http://localhost:8080/api`. O workflow **E2E** do GitHub Actions faz as duas execuções a cada push. Na `main`, o resultado é versionado em [`docs/evidencias/execucao/`](evidencias/execucao/) (tabela original × corrigida, com a requisição e a resposta de cada teste).
 >
 > Nos passos manuais abaixo, `API=http://localhost:3000` (original) e `TOKEN_A`/`TOKEN_B` são tokens de dois usuários diferentes, obtidos em `POST /signup` ou `POST /login`.
 
@@ -395,6 +395,8 @@ Também é resultado de um pentest saber o que **não** está vulnerável:
 | H9 | **Kubernetes**: Pod Security `restricted`, NetworkPolicies default-deny, Kyverno (limites, sem `:latest`, registries permitidos, rootfs read-only, probes obrigatórias), sem token de service account | `deploy/k8s`, `deploy/policies` |
 | H10 | **Cadeia de suprimentos**: Actions fixadas por SHA, ferramentas com SHA-256, Dependabot com cooldown, SBOM, imagens assinadas (cosign), gate de CVE antes do deploy | `.github/` |
 | H11 | **Detecção**: eventos de segurança em log JSON + métricas + alertas (força bruta, contas bloqueadas, pico de 403) | `lib/observability`, regras Prometheus |
+| H12 | **Dependência externa isolada e resiliente**: a chamada à `randomuser.me` sai do navegador e passa pela API. A URL é fixa, sem entrada do usuário (não há SSRF). A resposta é limitada a 64 KB e reduzida a nome, e-mail e foto (aceita só do domínio esperado). Timeouts com teto rígido, retry só para erro transitório, circuit breaker, cache e fallback. CSP `connect-src 'self'`: o JavaScript não chama mais terceiros (só a foto ainda vem da `randomuser.me`, permitida em `img-src`). NetworkPolicy libera só HTTPS para a internet e bloqueia redes privadas e o endereço de metadados da nuvem (`169.254.169.254`) | `app/services/guest_instructor_client.rb`, `circuit_breaker.rb`, `security-headers.conf`, `network-policies.yaml` |
+| H13 | **Processo de segurança**: `SECURITY.md` com canal privado de reporte (GitHub Security Advisories), prazos de resposta por severidade e regras para testes | `SECURITY.md` |
 
 ---
 
@@ -438,10 +440,10 @@ flowchart LR
   P[Prometheus] -->|/metrics com token| A1 & A2
   P --> AM[Alertmanager]
   G[Grafana] --> P
-  U -. randomuser.me .-> EXT[(API externa)]
+  A1 & A2 -->|HTTPS · timeout, retry,<br/>circuit breaker, cache| EXT[(randomuser.me)]
 ```
 
-No Kubernetes, a mesma topologia usa Traefik (ingress), Service + Deployment com 2–5 réplicas (HPA), PDB, StatefulSet do PostgreSQL, kube-prometheus-stack e Loki/Alloy para logs. Tudo é sincronizado pelo ArgoCD (seção 9).
+No Kubernetes, a mesma topologia usa Traefik (ingress), Service + Deployment com 2–5 réplicas (HPA), PDB, StatefulSet do PostgreSQL, kube-prometheus-stack e Loki/Alloy para logs. A saída da API para a internet é liberada só em HTTPS (NetworkPolicy `api-egress-external-https`). Tudo é sincronizado pelo ArgoCD (seção 9).
 
 ### 8.2 SLIs e SLOs
 
@@ -458,8 +460,9 @@ Medição, consultas PromQL e alertas: [`docs/observabilidade.md`](observabilida
 - **Logs estruturados (JSON):** uma linha por requisição (método, rota, status, duração, `request_id`, `user_id`, IP real, réplica), eventos de segurança e erros. O `request_id` gerado pelo Nginx aparece no log do balanceador **e** no da API, o que permite seguir uma requisição de ponta a ponta. E-mails nunca em claro (hash).
 - **Métricas Prometheus** (`/metrics`, protegido por token): requisições por rota/status, histograma de latência, requisições em andamento, eventos de segurança, pool de conexões do banco, uptime/versão por réplica.
 - **Health checks:** `/health/live` (processo vivo, sem tocar no banco: o orquestrador não reinicia a API por causa do banco) e `/health/ready` (testa o PostgreSQL: réplica sem banco sai do balanceador).
-- **Dashboard Grafana provisionado** ("CourseSphere — SLOs, tráfego e segurança"): SLO e orçamento de erro restante, réplicas no ar, requisições/s **por réplica** (prova visual do balanceamento), status, erros, latência p50/p95/p99, pool do banco, eventos de segurança e 401/403/429.
-- **Alertas** (Alertmanager) com runbooks em [`docs/runbooks/`](runbooks/).
+- **Dashboard Grafana provisionado** ("CourseSphere — SLOs, tráfego e segurança"): SLO e orçamento de erro restante, réplicas no ar, requisições/s **por réplica** (prova visual do balanceamento), status, erros, latência p50/p95/p99, pool do banco, eventos de segurança e 401/403/429, e a dependência externa (estado do circuit breaker por réplica, chamadas por resultado, latência).
+- **Métricas da dependência externa:** `coursesphere_external_requests_total{outcome}` (`success`, `retry`, `failure`, `short_circuited`, `cache_hit`), histograma de latência e `coursesphere_circuit_breaker_state` (0 fechado, 1 meio-aberto, 2 aberto).
+- **Alertas** (Alertmanager) com runbooks em [`docs/runbooks/`](runbooks/), incluindo `ExternalDependencyCircuitOpen` e `ExternalDependencyFailing` ([runbook](runbooks/dependencia-externa.md)).
 
 ### 8.4 Principais riscos de disponibilidade
 
@@ -472,22 +475,51 @@ Medição, consultas PromQL e alertas: [`docs/observabilidade.md`](observabilida
 | D5 | `GET /courses` sem paginação | Latência e memória crescem com a base; risco de esgotar o pool | **Aberto** — recomendação R5 |
 | D6 | Login usa CPU de propósito (bcrypt) | Inundação de logins satura a CPU e afeta todo o resto | **Mitigado** por rate limit na borda e na app, HPA por CPU e alerta |
 | D7 | Pool de conexões x threads | Threads esperando conexão → latência | Pool = threads (5); métrica `db_pool{state="waiting"}` + alerta |
-| D8 | Dependência externa (randomuser.me) | Card do "instrutor convidado" não carrega | Isolado: chamada direta do navegador, falha só afeta o card |
+| D8 | Dependência externa (randomuser.me) | Card do "instrutor convidado" não carrega. Com a chamada na API, uma dependência lenta poderia prender threads do Puma e derrubar a latência de tudo (falha em cascata) | **Mitigado**: timeout com teto rígido, retry com orçamento de 3 s, circuit breaker por réplica, cache de 24 h e fallback (seção 8.7). Exercício de falha roda no E2E |
 | D9 | Sem backup/restore testado | Perda de dados | **Aberto** — R1 (backup automatizado + teste de restore) |
 
 ### 8.5 Recomendações de resiliência
 
 1. **Banco gerenciado Multi-AZ** com failover automático, backups diários e PITR, e **teste de restore** trimestral (D1, D9).
 2. **PgBouncer** entre API e banco quando escalar réplicas (evita estourar `max_connections`).
-3. **Timeouts e retries** já existem (conexão 3 s, statement 5 s, proxy 2 s/15 s, retry só em métodos idempotentes). Próximo passo: **circuit breaker** para dependências externas, se a API passar a chamá-las.
+3. **Timeouts, retries e circuit breaker** implementados: banco (conexão 3 s, statement 5 s), proxy (2 s/15 s, retry só em métodos idempotentes) e dependência externa (seção 8.7). Próximo passo: usar o mesmo `CircuitBreaker` em qualquer dependência nova e incluir a queda da dependência no chaos testing (item 6).
 4. **Paginação** e índices conforme a base crescer (D5). Testes de carga para calibrar HPA e SLOs (R7).
 5. **Multi-AZ** para os nós do cluster e `topologySpreadConstraints` por zona (hoje, por nó).
 6. **Chaos testing** simples (matar uma réplica e o banco em homologação) para validar alertas e runbooks.
 
 ### 8.6 Escalabilidade e balanceamento — evidência
 
-- **Docker compose:** Nginx com `upstream` round-robin para `api-1` e `api-2`, health check passivo (`max_fails=3 fail_timeout=10s`) e retry na outra réplica para métodos idempotentes. `python scripts/lb_demo.py` faz 20 requisições e mostra a distribuição pelo header `X-Served-By`. O log JSON do Nginx registra o `upstream` de cada requisição, e o dashboard mostra requisições/s por réplica. O workflow **E2E** salva essas três evidências (`lb-demo.txt`, `lb-access-log.txt`, `prometheus-requests-por-instancia.json`).
+- **Docker compose:** Nginx com `upstream` round-robin para `api-1` e `api-2`, health check passivo (`max_fails=3 fail_timeout=10s`) e retry na outra réplica para métodos idempotentes. `python scripts/lb_demo.py` faz 20 requisições e mostra a distribuição pelo header `X-Served-By`. O log JSON do Nginx registra o `upstream` de cada requisição, e o dashboard mostra requisições/s por réplica. O workflow **E2E** publica essas três evidências em [`docs/evidencias/execucao/`](evidencias/execucao/) (`balanceamento-lb-demo.txt`, `balanceamento-log-nginx.txt`, `prometheus-requests-por-instancia.json`), junto com o print do dashboard.
 - **Kubernetes:** Service balanceando 2–5 pods (HPA por CPU), Traefik na frente, réplicas espalhadas entre nós.
+
+### 8.7 Tratamento de falhas da dependência externa
+
+O card "Instrutor convidado" da página do curso usa a `randomuser.me`. Na versão original, o navegador chamava a API externa direto, sem timeout nem fallback: se ela falhasse, o card ficava para sempre em "Carregando perfil...". Agora o frontend chama `GET /api/courses/:id/guest_instructor`, e a API faz a chamada externa com estas proteções (`GuestInstructorClient` + `CircuitBreaker`):
+
+| Proteção | Valor | Por quê |
+|---|---|---|
+| Timeout | conexão 0,5 s, leitura 1,5 s, **teto rígido de 2 s** por tentativa | o timeout de leitura do `Net::HTTP` vale por pacote. Sem o teto, uma resposta lenta segura a thread por muito mais tempo |
+| Retry | até 3 tentativas, **backoff exponencial com jitter**, só para timeout, erro de rede e HTTP 429/5xx | erro permanente (4xx, resposta inválida) não melhora repetindo. O jitter evita que as réplicas repitam todas no mesmo instante |
+| Orçamento total | 3 s por requisição, somando tentativas e esperas | o retry nunca passa do tempo que o usuário aceitaria esperar |
+| Circuit breaker | abre com **5 requisições seguidas com falha**, fica aberto 30 s e depois deixa passar **1 chamada de teste** | com a dependência fora do ar, a API para de gastar threads em timeouts e responde na hora |
+| Cache | 24 h por curso (Solid Cache, compartilhado entre réplicas) | menos chamadas externas. O que já foi consultado continua disponível durante a falha |
+| Fallback | `200 {"available": false, "instructor": null}` | a página do curso funciona normalmente, só sem o card |
+
+```mermaid
+stateDiagram-v2
+  state "Fechado" as F
+  state "Aberto (falha rápido)" as A
+  state "Meio-aberto (1 teste)" as M
+  [*] --> F
+  F --> A: 5 falhas seguidas
+  A --> M: 30 s depois
+  M --> F: teste ok
+  M --> A: teste falhou
+```
+
+**Evidência:** o exercício `script/resilience_drill.rb` roda dentro do container `api-1` no E2E. Ele faz duas chamadas reais (a segunda vem do cache) e depois simula a dependência fora do ar com um IP que não responde. Mostra cada requisição limitada ao orçamento até o disjuntor abrir e, daí em diante, a resposta imediata. A saída da última execução está em [`docs/evidencias/execucao/`](evidencias/execucao/). Testes: `circuit_breaker_test.rb` (6), `guest_instructor_client_test.rb` (9, transporte falso, sem rede) e `guest_instructors_controller_test.rb` (4). Diagnóstico e mitigação: [runbook](runbooks/dependencia-externa.md).
+
+**SLOs:** o endpoint do card fica **fora** do SLI do CRUD (seção 8.2). Uma falha de terceiro, já tratada com fallback, não deve consumir o orçamento de erro da função principal. A dependência tem alertas próprios.
 
 ---
 
@@ -497,18 +529,33 @@ Medição, consultas PromQL e alertas: [`docs/observabilidade.md`](observabilida
 |---|---|
 | **Infraestrutura** | Terraform cria um cluster **kind** (1 control-plane + 2 workers), namespaces com Pod Security e segredos aleatórios (fora do Git), e instala o **ArgoCD** (`deploy/terraform/kind`) |
 | **GitOps** | Padrão **app-of-apps**: o Terraform cria só a Application `root`. O ArgoCD aplica, em ordem (*sync waves*), Traefik, metrics-server, Kyverno, kube-prometheus-stack, Loki, Alloy, políticas, observabilidade e a aplicação, com `prune` + `selfHeal` |
-| **Automação (CI/CD)** | `ci.yml` (testes, lint, build, validação de toda a IaC), `security.yml` (SAST/SCA/segredos/IaC, semanal também), `cd.yml` (build → scan → SBOM → push → assinatura → commit da nova tag = deploy), `e2e.yml` (compose + PoCs + ZAP), `k8s-e2e.yml` (Terraform + ArgoCD num runner limpo) |
+| **Automação (CI/CD)** | `ci.yml` (testes, lint, build, validação de toda a IaC), `security.yml` (SAST/SCA/segredos/IaC, semanal também), `cd.yml` (build → scan → SBOM → push → assinatura → commit da nova tag = deploy), `e2e.yml` (compose + PoCs + exercício de falha + ZAP + prints, com as evidências publicadas no repositório), `k8s-e2e.yml` (Terraform + ArgoCD num runner limpo) |
 | **Observabilidade** | Logs JSON, Prometheus, Alertmanager, Grafana, Loki/Alloy, SLOs, runbooks |
 | **Segurança** | Semgrep (regras próprias), Brakeman, bundler-audit, npm audit, Trivy (fs, config, imagem), Gitleaks, ZAP, Kyverno, Pod Security, NetworkPolicies, cosign |
 
 Toda a configuração do Kubernetes/ArgoCD foi validada sem cluster: **todos os 9 Applications** renderizados com os valores reais e validados com kubeconform (`scripts/validate_gitops.py`); Terraform com `terraform validate`; regras com `promtool`; políticas Kyverno contra o schema real da CRD.
+
+### 9.1 O que os gates do pipeline pegaram
+
+Cada falha abaixo foi barrada por um gate e corrigida na causa antes de chegar ao "deploy". É a evidência de que o pipeline barra problemas, e não só executa ferramentas:
+
+| Gate | O que pegou | Correção |
+|---|---|---|
+| Trivy na imagem (`cd.yml`) | **CVE-2026-33210 (CRITICAL)** na gem `json` 2.18.0 que vem *dentro* do Ruby 4.0.9. O lockfile já usava a versão corrigida, mas a gem padrão continuava na imagem | a imagem instala `json` 2.19.9 e remove a 2.18 (`backend/Dockerfile`) |
+| Trivy na imagem | pacotes do sistema operacional com correção publicada depois da tag da imagem base | `apt-get upgrade` / `apk upgrade` no build |
+| E2E | o boot de produção quebrava: um initializer desligava um logger que a API (só com os railties necessários) não carrega | o initializer só age se a constante existir |
+| E2E | o `tmpfs` nascia `root:755` e o processo (uid 10001) não criava `tmp/pids` | `tmpfs` com o uid da API (`fsGroup` no Kubernetes) |
+| E2E | o healthcheck usava `wget` numa imagem que só tem `curl` | healthcheck com `curl` |
+| CI (testes) | `db/schema.rb` divergia do que as migrations geram (ordem dos índices) e faltava `active_job` para o job de expiração do Solid Cache | schema regenerado na ordem do PostgreSQL; `require "active_job"` |
+| Trivy config | workloads no namespace `default`, frontend com uid ≤ 10000 e `Host` repassado do cliente para a API | namespace explícito, uid > 10000 e `Host` fixo no proxy |
+| Semgrep (Code scanning) | a regra de regex de URI apontava o script de evidência da VULN-06, que usa a regex antiga de propósito | regra limitada a `backend/` |
 
 ---
 
 ## 10. Limitações e transparência
 
 - A análise estática, as ferramentas de SAST/SCA/IaC e a validação de toda a infraestrutura foram executadas durante o trabalho (saídas em `docs/evidencias/`).
-- As **evidências dinâmicas** (PoC contra as versões original e corrigida, distribuição do balanceador, métricas por réplica, ZAP, cluster kind + ArgoCD) são geradas pelos workflows `E2E` e `K8s E2E` do GitHub Actions e publicadas como artefatos de cada execução. Os comandos locais, a ordem da suíte e a leitura de uma falha de CI estão em [`docs/VERIFICACAO.md`](VERIFICACAO.md).
+- As **evidências dinâmicas** são geradas pelos workflows do GitHub Actions, não à mão. O `E2E` (PoC contra as versões original e corrigida, distribuição do balanceador, métricas por réplica, exercício de falha, ZAP e prints da aplicação e do Grafana) roda a cada push, e na `main` publica o resultado em [`docs/evidencias/execucao/`](evidencias/execucao/). O `K8s E2E` (cluster kind + ArgoCD) roda sob demanda e toda semana, e deixa o resultado como artefato da execução. Os comandos locais, a ordem da suíte e a leitura de uma falha de CI estão em [`docs/VERIFICACAO.md`](VERIFICACAO.md).
 - O DAST (ZAP baseline) é passivo e não autenticado. Testes de carga não foram executados (R7, R9).
 - O PostgreSQL do laboratório é de instância única, de propósito (risco D1 documentado).
 
@@ -521,10 +568,9 @@ Toda a configuração do Kubernetes/ArgoCD foi validada sem cluster: **todos os 
 | `docs/evidencias/baseline/` | Brakeman, Semgrep, bundler-audit e npm audit da versão original |
 | `docs/evidencias/depois/` | bundler-audit, npm audit e regras Semgrep próprias (original × corrigida) |
 | `docs/evidencias/vulns/vuln-06-validacao-url.txt` | Regex antiga × validação nova |
-| Artefato CI `evidencias-versao-original` | PoC contra a v0-original (esperado: VULNERÁVEL) |
-| Artefato CI `evidencias-versao-corrigida` | PoC (CORRIGIDO), balanceamento, logs JSON, métricas, headers |
-| Artefato CI `zap-baseline` | Relatório OWASP ZAP |
-| Artefato CI `evidencias-kubernetes` | Applications do ArgoCD, pods, políticas, PoC via ingress |
+| [`docs/evidencias/execucao/`](evidencias/execucao/) (gerada pelo CI a cada push na `main`) | PoC contra a `v0-original` (VULNERÁVEL) e a corrigida (CORRIGIDO), com requisição e resposta. Balanceamento (`lb_demo`, log JSON do Nginx, contagem por réplica no Prometheus), logs JSON da API, exercício de falha do circuit breaker, cabeçalhos, OWASP ZAP e prints da aplicação e do Grafana. Tokens JWT removidos |
+| Artefatos CI `evidencias-versao-original`, `evidencias-versao-corrigida`, `zap-baseline` | Os mesmos arquivos, de cada execução (inclusive em pull requests) |
+| Artefato CI `evidencias-kubernetes` | Applications do ArgoCD, pods, políticas, PoC via ingress (workflow `K8s E2E`) |
 
 ## Anexo B — Mapa de correções
 
@@ -539,3 +585,4 @@ Toda a configuração do Kubernetes/ArgoCD foi validada sem cluster: **todos os 
 | VULN-07 | `dc94e81` | bundler-audit / npm audit / Trivy no CI |
 | VULN-08 | `ae89af9` | `authentication_controller_test.rb` (2 novos) |
 | VULN-09 | `b3859fd` | `user_test.rb` (6 novos), `authentication_controller_test.rb` (1) |
+| H12 / D8 (dependência externa) | `93bc356` | `circuit_breaker_test.rb` (6), `guest_instructor_client_test.rb` (9), `guest_instructors_controller_test.rb` (4) + exercício de falha no E2E |
