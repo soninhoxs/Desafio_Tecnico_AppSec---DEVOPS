@@ -68,6 +68,21 @@ module Observability
       labels: %i[dependency]
     )
 
+    # As séries das dependências conhecidas nascem em zero no boot. Sem isso, o
+    # disjuntor só aparece no Prometheus depois da primeira troca de estado, e
+    # cada resultado só depois da primeira ocorrência: o painel e o alerta
+    # ficariam "sem dado" em vez de mostrar fechado / zero.
+    EXTERNAL_DEPENDENCIES = %w[randomuser].freeze # GuestInstructorClient::DEPENDENCY
+    EXTERNAL_OUTCOMES = %w[success retry failure short_circuited cache_hit].freeze
+
+    EXTERNAL_DEPENDENCIES.each do |dependency|
+      CIRCUIT_BREAKER_STATE.init_label_set(dependency: dependency)
+      EXTERNAL_DURATION.init_label_set(dependency: dependency)
+      EXTERNAL_OUTCOMES.each do |outcome|
+        EXTERNAL_REQUESTS.init_label_set(dependency: dependency, outcome: outcome)
+      end
+    end
+
     def self.render
       collect_runtime_gauges
       Prometheus::Client::Formats::Text.marshal(REGISTRY)

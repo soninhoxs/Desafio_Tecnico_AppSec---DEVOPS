@@ -49,6 +49,16 @@ class ObservabilityTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "series da dependencia externa existem antes da primeira chamada" do
+    get "/metrics"
+    assert_response :ok
+    assert_match(/coursesphere_circuit_breaker_state\{dependency="randomuser"\} /, response.body)
+    %w[success retry failure short_circuited cache_hit].each do |outcome|
+      assert_match(/coursesphere_external_requests_total\{dependency="randomuser",outcome="#{outcome}"\} /, response.body)
+    end
+    assert_match(/coursesphere_external_request_duration_seconds_bucket\{dependency="randomuser",le="2"\} /, response.body)
+  end
+
   test "falha de login vira evento de seguranca nas metricas" do
     post "/login", params: { email: "alice@example.com", password: "errada" }, as: :json
     get "/metrics"
