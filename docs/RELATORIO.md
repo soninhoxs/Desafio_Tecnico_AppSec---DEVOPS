@@ -461,7 +461,7 @@ Medição, consultas PromQL e alertas: [`docs/observabilidade.md`](observabilida
 - **Métricas Prometheus** (`/metrics`, protegido por token): requisições por rota/status, histograma de latência, requisições em andamento, eventos de segurança, pool de conexões do banco, uptime/versão por réplica.
 - **Health checks:** `/health/live` (processo vivo, sem tocar no banco: o orquestrador não reinicia a API por causa do banco) e `/health/ready` (testa o PostgreSQL: réplica sem banco sai do balanceador).
 - **Dashboard Grafana provisionado** ("CourseSphere — SLOs, tráfego e segurança"): SLO e orçamento de erro restante, réplicas no ar, requisições/s **por réplica** (prova visual do balanceamento), status, erros, latência p50/p95/p99, pool do banco, eventos de segurança e 401/403/429, e a dependência externa (estado do circuit breaker por réplica, chamadas por resultado, latência).
-- **Métricas da dependência externa:** `coursesphere_external_requests_total{outcome}` (`success`, `retry`, `failure`, `short_circuited`, `cache_hit`), histograma de latência e `coursesphere_circuit_breaker_state` (0 fechado, 1 meio-aberto, 2 aberto).
+- **Métricas da dependência externa:** `coursesphere_external_requests_total{outcome}` (`success`, `retry`, `failure`, `short_circuited`, `cache_hit`), histograma de latência e `coursesphere_circuit_breaker_state` (0 fechado, 1 meio-aberto, 2 aberto). As séries nascem em zero no boot, então o painel e os alertas têm dado antes da primeira chamada.
 - **Alertas** (Alertmanager) com runbooks em [`docs/runbooks/`](runbooks/), incluindo `ExternalDependencyCircuitOpen` e `ExternalDependencyFailing` ([runbook](runbooks/dependencia-externa.md)).
 
 ### 8.4 Principais riscos de disponibilidade
@@ -498,7 +498,7 @@ O card "Instrutor convidado" da página do curso usa a `randomuser.me`. Na vers�
 
 | Proteção | Valor | Por quê |
 |---|---|---|
-| Timeout | conexão 0,5 s, leitura 1,5 s, **teto rígido de 2 s** por tentativa | o timeout de leitura do `Net::HTTP` vale por pacote. Sem o teto, uma resposta lenta segura a thread por muito mais tempo |
+| Timeout | conexão 0,5 s, leitura 1,5 s, **teto rígido de 2 s** por tentativa | o timeout de leitura do `Net::HTTP` vale para cada leitura do socket, não para a resposta inteira. Sem o teto, uma resposta que chega aos poucos segura a thread por muito mais tempo |
 | Retry | até 3 tentativas, **backoff exponencial com jitter**, só para timeout, erro de rede e HTTP 429/5xx | erro permanente (4xx, resposta inválida) não melhora repetindo. O jitter evita que as réplicas repitam todas no mesmo instante |
 | Orçamento total | 3 s por requisição, somando tentativas e esperas | o retry nunca passa do tempo que o usuário aceitaria esperar |
 | Circuit breaker | abre com **5 requisições seguidas com falha**, fica aberto 30 s e depois deixa passar **1 chamada de teste** | com a dependência fora do ar, a API para de gastar threads em timeouts e responde na hora |
@@ -537,7 +537,7 @@ Toda a configuração do Kubernetes/ArgoCD foi validada sem cluster: **todos os 
 
 ### 9.1 O que os gates do pipeline pegaram
 
-Cada falha abaixo foi barrada por um gate e corrigida na causa antes de chegar ao "deploy". É a evidência de que o pipeline barra problemas, e não só executa ferramentas:
+Cada problema abaixo foi pego por uma etapa do pipeline e corrigido na causa. É a evidência de que o pipeline barra problemas, e não só executa ferramentas:
 
 | Gate | O que pegou | Correção |
 |---|---|---|
@@ -549,6 +549,7 @@ Cada falha abaixo foi barrada por um gate e corrigida na causa antes de chegar a
 | CI (testes) | `db/schema.rb` divergia do que as migrations geram (ordem dos índices) e faltava `active_job` para o job de expiração do Solid Cache | schema regenerado na ordem do PostgreSQL; `require "active_job"` |
 | Trivy config | workloads no namespace `default`, frontend com uid ≤ 10000 e `Host` repassado do cliente para a API | namespace explícito, uid > 10000 e `Host` fixo no proxy |
 | Semgrep (Code scanning) | a regra de regex de URI apontava o script de evidência da VULN-06, que usa a regex antiga de propósito | regra limitada a `backend/` |
+| Print do Grafana (E2E) | SLO-1 e orçamento de erro como "No data" quando não há nenhum 5xx (a série de erro não existe); painel do disjuntor vazio até a primeira troca de estado | `or vector(0)` nos numeradores de erro; séries da dependência iniciadas em zero no boot |
 
 ---
 

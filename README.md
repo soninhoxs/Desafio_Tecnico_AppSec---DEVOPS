@@ -48,7 +48,7 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 | **Observabilidade da dependência:** métricas de chamadas, latência e estado do disjuntor, linha nova no dashboard, alertas `ExternalDependencyCircuitOpen`/`ExternalDependencyFailing` e exercício de falha (`script/resilience_drill.rb`) que roda dentro do container no E2E. | 4 (métricas, dashboard) | `backend/lib/observability/metrics.rb`, `deploy/observability/` |
 | **Segurança da mudança:** URL fixa (sem SSRF), resposta reduzida a nome/e-mail/foto, CSP `connect-src 'self'` (o JavaScript do navegador não chama mais terceiros; só a foto ainda vem da `randomuser.me`) e NetworkPolicy que libera só HTTPS para a internet, bloqueando redes privadas e o endereço de metadados da nuvem. | 3 (hardening) | `guest_instructor_client.rb`, `frontend/nginx/security-headers.conf`, `deploy/k8s/base/network-policies.yaml` |
 | **Política de segurança (`SECURITY.md`).** A aba Security do GitHub indicava "No security policy detected". Agora define canal privado de reporte, prazos por severidade e regras para testes. | Postura de segurança | [`SECURITY.md`](SECURITY.md) |
-| **Alerta do Code scanning fechado.** A regra Semgrep de regex de URI passou a valer só para `backend/`: o script de evidência da VULN-06 usa a regex antiga de propósito. | 7 (SAST no repositório) | `security/semgrep/coursesphere.yml` |
+| **Alerta do Code scanning (Semgrep) tratado.** A regra de regex de URI passou a valer só para `backend/`: o script de evidência da VULN-06 usa a regex antiga de propósito, para comparar com a validação nova. | 7 (SAST no repositório) | `security/semgrep/coursesphere.yml` |
 | **19 testes novos** (circuit breaker, cliente da dependência com transporte falso, endpoint). | Diferencial: testes automatizados | `backend/test/services/`, `backend/test/controllers/guest_instructors_controller_test.rb` |
 
 **O que o próprio pipeline pegou** (e foi corrigido) desde a primeira execução no GitHub. É a evidência de que os gates funcionam:
@@ -57,6 +57,7 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 - O **E2E** pegou três falhas que só aparecem em produção: um initializer chamava um logger que a API não carrega (`NameError` no boot), o `tmpfs` nascia `root:755` e o processo (uid 10001) não criava `tmp/pids`, e o healthcheck usava `wget` numa imagem que só tem `curl`.
 - O **CI** pegou divergência entre as migrations e o `db/schema.rb`, e a falta da biblioteca `active_job` no eager load do Solid Cache.
 - O **Trivy config** levou a: namespace explícito nos workloads, frontend com uid > 10000 e `Host` fixo no proxy (o cliente não escolhe mais o cabeçalho que a API recebe).
+- O **print do Grafana** publicado pelo E2E mostrou o SLO-1 e o orçamento de erro como "No data": sem nenhum 5xx, a série de erro não existe. O painel do disjuntor também ficava vazio até a primeira troca de estado. Correção: numeradores de erro com `or vector(0)` e séries da dependência iniciadas em zero no boot.
 
 Detalhes e como reproduzir cada verificação: [`docs/VERIFICACAO.md`](docs/VERIFICACAO.md).
 

@@ -47,6 +47,8 @@ Exemplo de evento de segurança:
 
 Eventos de log da dependência externa: `external.request_failed` (com `error_class` e `error_message`) e `circuit_breaker.state_change` (`dependency`, `from`, `to`).
 
+As séries da dependência nascem em zero no boot da réplica (`init_label_set`). Antes da primeira chamada, o painel já mostra o disjuntor **fechado** e os resultados em zero, em vez de "sem dado".
+
 ## 2. SLIs e SLOs
 
 Janela: **30 dias corridos**.
@@ -63,13 +65,15 @@ Janela: **30 dias corridos**.
 
 ### PromQL (recording rules em `deploy/observability/prometheus/rules/coursesphere.rules.yml`)
 
+Os numeradores de erro usam `or vector(0)`. Sem nenhum 5xx, a série de erro não existe, e o SLO apareceria como "No data" em vez de 100%. Foi o que o print do Grafana no E2E mostrou antes da correção.
+
 ```promql
 # SLI-1: fração de erro (5xx) do CRUD em 5 min
-sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[5m]))
+(sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[5m])) or vector(0))
 / sum(rate(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[5m]))
 
 # SLO-1 atingido nos últimos 30 dias (Grafana)
-1 - sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[30d]))
+1 - (sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor",status=~"5.."}[30d])) or vector(0))
   / sum(increase(http_server_requests_total{route=~"/courses.*|/lessons.*",route!~".*/guest_instructor"}[30d]))
 
 # Dependência externa: fração de chamadas que falharam ou foram barradas pelo disjuntor
