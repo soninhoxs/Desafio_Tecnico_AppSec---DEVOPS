@@ -19,7 +19,7 @@ Alvo: http://localhost:8080/api
                POST lesson com video_url=javascript:... -> 422
 
 [CORRIGIDO   ] VULN-08   Enumeração de usuários pelo tempo do login
-               mediana e-mail existente = 262 ms; e-mail inexistente = 258 ms
+               mediana e-mail existente = 186 ms; e-mail inexistente = 178 ms
 
 [CORRIGIDO   ] VULN-09   Senha fraca aceita no cadastro ('123456')
                POST /signup com senha 123456 -> 422

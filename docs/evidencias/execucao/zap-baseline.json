@@ -1,8 +1,8 @@
 {
 	"@programName": "ZAP",
 	"@version": "2.17.0",
-	"@generated": "Wed, 28 Oct 2026 14:57:22",
-	"created": "2026-10-28T14:57:22.512777490Z",
+	"@generated": "Wed, 28 Oct 2026 18:37:52",
+	"created": "2026-10-28T18:37:52.245597060Z",
 	"insights":[
 		{
 			"level": "Low",
@@ -87,7 +87,7 @@
 					"desc": "<p>Cross-Origin-Embedder-Policy header is a response header that prevents a document from loading any cross-origin resources that don't explicitly grant the document permission (using CORP or CORS).</p>",
 					"instances":[ 
 						{
-							"id": "11",
+							"id": "10",
 							"uri": "http://localhost:8080",
 							"nodeName": "http:\/\/localhost:8080",
 							"method": "GET",
@@ -97,7 +97,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "14",
+							"id": "15",
 							"uri": "http://localhost:8080/robots.txt",
 							"nodeName": "http:\/\/localhost:8080\/robots.txt",
 							"method": "GET",
@@ -107,7 +107,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "6",
+							"id": "8",
 							"uri": "http://localhost:8080/sitemap.xml",
 							"nodeName": "http:\/\/localhost:8080\/sitemap.xml",
 							"method": "GET",
@@ -137,7 +137,7 @@
 					"desc": "<p>Cross-Origin-Resource-Policy header is an opt-in header designed to counter side-channels attacks like Spectre. Resource should be specifically set as shareable amongst different origins.</p>",
 					"instances":[ 
 						{
-							"id": "10",
+							"id": "9",
 							"uri": "http://localhost:8080",
 							"nodeName": "http:\/\/localhost:8080",
 							"method": "GET",
@@ -147,7 +147,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "17",
+							"id": "19",
 							"uri": "http://localhost:8080/assets/index-seDbkrhr.css",
 							"nodeName": "http:\/\/localhost:8080\/assets\/index-seDbkrhr.css",
 							"method": "GET",
@@ -157,7 +157,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "19",
+							"id": "17",
 							"uri": "http://localhost:8080/favicon.svg",
 							"nodeName": "http:\/\/localhost:8080\/favicon.svg",
 							"method": "GET",
@@ -167,7 +167,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "12",
+							"id": "14",
 							"uri": "http://localhost:8080/robots.txt",
 							"nodeName": "http:\/\/localhost:8080\/robots.txt",
 							"method": "GET",
@@ -177,7 +177,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "5",
+							"id": "7",
 							"uri": "http://localhost:8080/sitemap.xml",
 							"nodeName": "http:\/\/localhost:8080\/sitemap.xml",
 							"method": "GET",
@@ -238,8 +238,8 @@
 					"instances":[ 
 						{
 							"id": "0",
-							"uri": "http://localhost:8080/robots.txt",
-							"nodeName": "http:\/\/localhost:8080\/robots.txt",
+							"uri": "http://localhost:8080",
+							"nodeName": "http:\/\/localhost:8080",
 							"method": "GET",
 							"param": "",
 							"attack": "",
@@ -264,7 +264,7 @@
 					"reference": "",
 					"cweid": "-1",
 					"wascid": "-1",
-					"sourceid": "6"
+					"sourceid": "1"
 				},
 				{
 					"pluginid": "10049",
@@ -287,7 +287,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "16",
+							"id": "18",
 							"uri": "http://localhost:8080/assets/index-seDbkrhr.css",
 							"nodeName": "http:\/\/localhost:8080\/assets\/index-seDbkrhr.css",
 							"method": "GET",
@@ -317,7 +317,7 @@
 					"desc": "<p>The response contents are storable by caching components such as proxy servers, but will not be retrieved directly from the cache, without validating the request upstream, in response to similar requests from other users.</p>",
 					"instances":[ 
 						{
-							"id": "7",
+							"id": "4",
 							"uri": "http://localhost:8080",
 							"nodeName": "http:\/\/localhost:8080",
 							"method": "GET",
@@ -327,7 +327,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "18",
+							"id": "16",
 							"uri": "http://localhost:8080/favicon.svg",
 							"nodeName": "http:\/\/localhost:8080\/favicon.svg",
 							"method": "GET",
@@ -337,7 +337,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "9",
+							"id": "13",
 							"uri": "http://localhost:8080/robots.txt",
 							"nodeName": "http:\/\/localhost:8080\/robots.txt",
 							"method": "GET",
@@ -347,7 +347,7 @@
 							"otherinfo": ""
 						},
 						{
-							"id": "4",
+							"id": "5",
 							"uri": "http://localhost:8080/sitemap.xml",
 							"nodeName": "http:\/\/localhost:8080\/sitemap.xml",
 							"method": "GET",

@@ -220,8 +220,8 @@ Remove all comments that return information that may help an attacker and fix an
 
 The application appears to be a modern web application. If you need to explore it automatically then the Client Spider may well be more effective than the standard one.
 
-* URL: http://localhost:8080/robots.txt
-  * Node Name: `http://localhost:8080/robots.txt`
+* URL: http://localhost:8080
+  * Node Name: `http://localhost:8080`
   * Method: `GET`
   * Parameter: ``
   * Attack: ``
