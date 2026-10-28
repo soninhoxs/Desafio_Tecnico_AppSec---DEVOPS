@@ -14,7 +14,7 @@ Análise de segurança, correções, hardening, observabilidade e infraestrutura
 | | |
 |---|---|
 | **Vulnerabilidades encontradas** | **9** (3 Altas, 4 Médias, 2 Baixas no contexto) — todas **corrigidas**, com testes automatizados e PoC |
-| **Dependências vulneráveis** | gems: **30 → 0** · npm: **14 → 0** |
+| **Dependências vulneráveis** | gems: **30 → 0** · npm: **14 → 0** · monitoradas pelos alertas do Dependabot no GitHub |
 | **Hardening** | rate limit em 3 camadas, CSP/HSTS e outros headers, JWT endurecido com revogação, containers non-root/read-only, Pod Security, NetworkPolicies, Kyverno, imagens assinadas |
 | **Confiabilidade** | Nginx balanceando **2 réplicas** da API, health checks, logs JSON, métricas Prometheus, **3 SLOs** com alertas de burn rate, dashboard Grafana, runbooks · dependência externa com **timeout, retry, circuit breaker, cache e fallback** |
 | **Plataforma** | **Terraform** cria cluster kind + **ArgoCD** (app-of-apps) · pipeline **CI/CD** com SAST/SCA/DAST e deploy GitOps |
@@ -47,7 +47,7 @@ Revisão feita item a item contra o edital do desafio. O que faltava ou estava f
 | **Tratamento de falhas na dependência externa.** O card "Instrutor convidado" chamava a `randomuser.me` direto do navegador, sem proteção. Agora a chamada passa pela API com timeout curto (teto de 2 s por tentativa), retry com backoff + jitter só para erro transitório (orçamento de 3 s), **circuit breaker** (abre com 5 falhas, testa a cada 30 s), cache de 24 h e fallback (a página continua funcionando). | Diferencial: "tratamento de falhas (timeout, retry, circuit breaker)" | `backend/app/services/`, `GET /api/courses/:id/guest_instructor`, [runbook](docs/runbooks/dependencia-externa.md) |
 | **Observabilidade da dependência:** métricas de chamadas, latência e estado do disjuntor, linha nova no dashboard, alertas `ExternalDependencyCircuitOpen`/`ExternalDependencyFailing` e exercício de falha (`script/resilience_drill.rb`) que roda dentro do container no E2E. | 4 (métricas, dashboard) | `backend/lib/observability/metrics.rb`, `deploy/observability/` |
 | **Segurança da mudança:** URL fixa (sem SSRF), resposta reduzida a nome/e-mail/foto, CSP `connect-src 'self'` (o JavaScript do navegador não chama mais terceiros; só a foto ainda vem da `randomuser.me`) e NetworkPolicy que libera só HTTPS para a internet, bloqueando redes privadas e o endereço de metadados da nuvem. | 3 (hardening) | `guest_instructor_client.rb`, `frontend/nginx/security-headers.conf`, `deploy/k8s/base/network-policies.yaml` |
-| **Política de segurança (`SECURITY.md`).** A aba Security do GitHub indicava "No security policy detected". Agora define canal privado de reporte, prazos por severidade e regras para testes. | Postura de segurança | [`SECURITY.md`](SECURITY.md) |
+| **Política de segurança e recursos de segurança do GitHub.** A aba de segurança do GitHub indicava "No security policy detected". Agora o `SECURITY.md` define o canal de reporte, prazos por severidade e regras para testes. No repositório foram ligados o **relato privado de vulnerabilidades** (botão **Report a vulnerability** em Security and quality → Advisories), o **grafo de dependências** e os **alertas do Dependabot**, que alertam quando sai uma vulnerabilidade nova para uma dependência, sem esperar o próximo push. Na ativação, as 284 versões de gems e npm do grafo foram cruzadas com o GitHub Advisory Database: nenhum aviso conhecido. | Postura de segurança, 7 (SCA) | [`SECURITY.md`](SECURITY.md), Settings → Advanced Security |
 | **Alerta do Code scanning (Semgrep) tratado.** A regra de regex de URI passou a valer só para `backend/`: o script de evidência da VULN-06 usa a regex antiga de propósito, para comparar com a validação nova. | 7 (SAST no repositório) | `security/semgrep/coursesphere.yml` |
 | **19 testes novos** (circuit breaker, cliente da dependência com transporte falso, endpoint). | Diferencial: testes automatizados | `backend/test/services/`, `backend/test/controllers/guest_instructors_controller_test.rb` |
 
@@ -183,6 +183,7 @@ Resultados das ferramentas de SAST/SCA antes e depois das correções: [`docs/ev
 | **npm audit** | CVEs no frontend | `cd frontend && npm audit` | `security.yml` |
 | **Trivy** | CVEs, segredos, IaC, imagens | `trivy fs .` · `trivy config --ignorefile .trivyignore.yaml .` · `trivy image coursesphere-api:local` | `security.yml`, `cd.yml` (gate) |
 | **Gitleaks** | Segredos no histórico Git | `gitleaks git --config .gitleaks.toml .` | `security.yml` |
+| **Dependabot** | Alertas de CVE nas dependências (gems, npm, Actions) e PRs semanais de atualização, com espera de 7 dias | — (`.github/dependabot.yml` + Settings → Advanced Security) | GitHub, contínuo |
 | **OWASP ZAP** | DAST (baseline passivo) | `docker run --rm --network host ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t http://localhost:8080` | `e2e.yml` |
 | **PoC próprio** | Prova de cada achado | `python security/poc/poc.py --base-url ...` | `e2e.yml`, `k8s-e2e.yml` |
 | **kubeconform / helm / kustomize** | Validação dos manifests e charts do ArgoCD | `python scripts/validate_gitops.py` | `ci.yml` |
@@ -243,7 +244,7 @@ O passo a passo para rodar a mesma verificação na máquina (testes Rails, sche
 | **Infraestrutura** — ambientes, cluster, rede, armazenamento | `docker-compose.yml`, `deploy/terraform/kind`, `deploy/k8s` (NetworkPolicies, PVC, HPA, PDB) |
 | **Automações** — build, teste, deploy, CI/CD | `.github/workflows`, `scripts/`, `deploy/argocd` (GitOps) |
 | **Observabilidade** — monitoramento, logs, alertas, incidentes | `backend/lib/observability`, `deploy/observability`, `docs/observabilidade.md`, `docs/runbooks`, circuit breaker da dependência externa |
-| **Segurança** — scan de imagens, políticas, segredos | correções (`backend/`), `security/`, `deploy/policies` (Kyverno), Trivy/cosign no CD, segredos via Terraform/.env, `SECURITY.md` |
+| **Segurança** — scan de imagens, políticas, segredos | correções (`backend/`), `security/`, `deploy/policies` (Kyverno), Trivy/cosign no CD, alertas do Dependabot, segredos via Terraform/.env, `SECURITY.md` + relato privado de vulnerabilidades |
 
 ## Estrutura do repositório
 

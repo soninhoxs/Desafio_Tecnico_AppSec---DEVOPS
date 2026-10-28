@@ -11,8 +11,9 @@
 
 **Não abra issue pública** com detalhes de uma falha de segurança.
 
-Use o canal privado do GitHub: aba **Security → Report a vulnerability**
-(<https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/security/advisories/new>).
+Use o relato privado de vulnerabilidades do GitHub, ativado neste repositório: aba
+**Security and quality → Advisories → Report a vulnerability**
+(<https://github.com/soninhoxs/Desafio_Tecnico_AppSec---DEVOPS/security/advisories/new>; é preciso estar logado no GitHub).
 O relato fica visível só para quem mantém o repositório até a correção ser publicada.
 
 Inclua, se possível:
@@ -48,5 +49,7 @@ O que roda automaticamente (detalhes no README e em [`docs/VERIFICACAO.md`](docs
   Trivy (dependências, segredos e IaC) e Gitleaks no histórico completo.
 - **Antes de cada deploy:** Trivy na imagem final (HIGH/CRITICAL com correção bloqueiam), SBOM CycloneDX e
   assinatura das imagens com cosign.
+- **Alertas de dependência:** grafo de dependências e alertas do Dependabot ligados no repositório. O GitHub alerta
+  quem mantém o projeto quando é publicada uma vulnerabilidade nova para uma dependência do `main`, sem esperar o próximo push.
 - **Atualizações:** Dependabot semanal, com espera de 7 dias para versões recém-publicadas.
 - **Modelagem de ameaças:** [`docs/threat-model.md`](docs/threat-model.md) (STRIDE).

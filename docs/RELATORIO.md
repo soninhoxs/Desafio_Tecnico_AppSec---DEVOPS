@@ -323,7 +323,7 @@ https://youtube.com/watch?v=abc123            antigo=ACEITA  novo=ACEITA
 
 **Causa raiz.** Ausência de processo de atualização e de verificação de dependências (o `ci.yml` do projeto estava em `backend/.github/` e nunca rodava).
 
-**Correção.** Atualização patch-level (rails 8.1.4, jwt 2.10.3, puma 8.0.2, nokogiri 1.19.4…) → **0 vulnerabilidades** em ambos. Remoção de gems e frameworks não usados (kamal, thruster, image_processing/libvips, solid_queue, solid_cable, Active Storage etc.). **Processo:** bundler-audit, npm audit e Trivy no CI a cada push e toda semana; Dependabot com *cooldown* de 7 dias; imagens escaneadas antes do deploy (gate) e com SBOM assinado.
+**Correção.** Atualização patch-level (rails 8.1.4, jwt 2.10.3, puma 8.0.2, nokogiri 1.19.4…) → **0 vulnerabilidades** em ambos. Remoção de gems e frameworks não usados (kamal, thruster, image_processing/libvips, solid_queue, solid_cable, Active Storage etc.). **Processo:** bundler-audit, npm audit e Trivy no CI a cada push e toda semana; grafo de dependências e alertas do Dependabot ligados no GitHub (o alerta chega quando uma vulnerabilidade nova é publicada, sem depender de push; na ativação, nenhuma das 284 versões de gems e npm tinha aviso conhecido); Dependabot com *cooldown* de 7 dias nas atualizações; imagens escaneadas antes do deploy (gate) e com SBOM assinado.
 
 ---
 
@@ -393,10 +393,10 @@ Também é resultado de um pentest saber o que **não** está vulnerável:
 | H7 | **Containers**: non-root, rootfs read-only, `cap_drop: ALL`, `no-new-privileges`, limites de CPU/memória/pids, redes segmentadas (`data` interna), portas só em 127.0.0.1 | `docker-compose.yml`, Dockerfiles |
 | H8 | **Banco com menor privilégio**: a API usa o usuário `coursesphere`, sem superusuário | `deploy/compose/postgres/initdb` |
 | H9 | **Kubernetes**: Pod Security `restricted`, NetworkPolicies default-deny, Kyverno (limites, sem `:latest`, registries permitidos, rootfs read-only, probes obrigatórias), sem token de service account | `deploy/k8s`, `deploy/policies` |
-| H10 | **Cadeia de suprimentos**: Actions fixadas por SHA, ferramentas com SHA-256, Dependabot com cooldown, SBOM, imagens assinadas (cosign), gate de CVE antes do deploy | `.github/` |
+| H10 | **Cadeia de suprimentos**: Actions fixadas por SHA, ferramentas com SHA-256, Dependabot com cooldown e alertas ligados, SBOM, imagens assinadas (cosign), gate de CVE antes do deploy | `.github/` |
 | H11 | **Detecção**: eventos de segurança em log JSON + métricas + alertas (força bruta, contas bloqueadas, pico de 403) | `lib/observability`, regras Prometheus |
 | H12 | **Dependência externa isolada e resiliente**: a chamada à `randomuser.me` sai do navegador e passa pela API. A URL é fixa, sem entrada do usuário (não há SSRF). A resposta é limitada a 64 KB e reduzida a nome, e-mail e foto (aceita só do domínio esperado). Timeouts com teto rígido, retry só para erro transitório, circuit breaker, cache e fallback. CSP `connect-src 'self'`: o JavaScript não chama mais terceiros (só a foto ainda vem da `randomuser.me`, permitida em `img-src`). NetworkPolicy libera só HTTPS para a internet e bloqueia redes privadas e o endereço de metadados da nuvem (`169.254.169.254`) | `app/services/guest_instructor_client.rb`, `circuit_breaker.rb`, `security-headers.conf`, `network-policies.yaml` |
-| H13 | **Processo de segurança**: `SECURITY.md` com canal privado de reporte (GitHub Security Advisories), prazos de resposta por severidade e regras para testes | `SECURITY.md` |
+| H13 | **Processo de segurança**: `SECURITY.md` com canal privado de reporte (relato privado de vulnerabilidades do GitHub, ativado no repositório: botão *Report a vulnerability* em Security and quality → Advisories), prazos de resposta por severidade e regras para testes | `SECURITY.md`, Settings → Advanced Security |
 
 ---
 
